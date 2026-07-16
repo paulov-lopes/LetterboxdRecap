@@ -1,0 +1,2610 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Letterboxd Recap</title>
+<meta name="description" content="Suba o export do seu Letterboxd e veja uma recapitulação completa do seu diário de cinema: gêneros, décadas, sagas, diretor e ator mais vistos, e mais. Tudo processado no seu navegador.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://letterboxdrecap.vercel.app">
+<meta property="og:title" content="Letterboxd Recap">
+<meta property="og:description" content="Suba o export do seu Letterboxd e veja uma recapitulação completa do seu diário de cinema. Tudo processado no seu navegador, nada é enviado pra lugar nenhum.">
+<meta property="og:image" content="https://letterboxdrecap.vercel.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="Letterboxd Recap">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Letterboxd Recap">
+<meta name="twitter:description" content="Suba o export do seu Letterboxd e veja uma recapitulação completa do seu diário de cinema.">
+<meta name="twitter:image" content="https://letterboxdrecap.vercel.app/og-image.png">
+<meta name="theme-color" content="#221013">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23221013'/%3E%3Ccircle cx='24' cy='27' r='15' fill='%2300e054' opacity='0.9'/%3E%3Ccircle cx='40' cy='27' r='15' fill='%2340bcf4' opacity='0.85' style='mix-blend-mode:screen'/%3E%3Ccircle cx='32' cy='42' r='15' fill='%23ff8000' opacity='0.85' style='mix-blend-mode:screen'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+/* detector de erros: mostra na tela qualquer erro de JS pra facilitar o diagnostico */
+window.addEventListener('error', function(e){
+  var m = (e.message || 'erro') + (e.lineno ? ' (linha ' + e.lineno + ')' : '');
+  var box = document.getElementById('diagBox');
+  if (!box){
+    box = document.createElement('div');
+    box.id = 'diagBox';
+    box.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#5a1a1a;color:#ffdede;font:12px/1.5 monospace;padding:10px 14px;white-space:pre-wrap;border-top:2px solid #a13d3d;';
+    (document.body || document.documentElement).appendChild(box);
+  }
+  box.textContent = 'ERRO DE JS (me manda esse texto): ' + m;
+});
+</script>
+<style>
+  :root{
+    --bg: #221013;
+    --bg-2: #2c1519;
+    --gold: #c9a227;
+    --gold-soft: #e0bd5a;
+    --cream: #efe4cf;
+    --teal: #5c8374;
+    --teal-soft: #7fa596;
+    --red-accent: #a13d3d;
+    --line: rgba(239,228,207,0.14);
+    --lb-green: #00e054;
+    --lb-orange: #ff8000;
+    --lb-blue: #40bcf4;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(180deg, transparent 0 46px, rgba(0,0,0,0.12) 46px 48px),
+      radial-gradient(ellipse at 20% -10%, rgba(201,162,39,0.10), transparent 45%),
+      var(--bg);
+    color:var(--cream);
+    font-family:'Fraunces', serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  ::selection{ background:var(--gold); color:var(--bg); }
+
+  .sprocket-rail{
+    position:fixed; top:0; bottom:0; width:22px; z-index:40;
+    background-image: radial-gradient(circle, var(--bg) 5px, transparent 5.5px);
+    background-size: 22px 34px;
+    background-repeat: repeat-y;
+    background-position: center 10px;
+    background-color:#150a0c;
+  }
+  .sprocket-rail.left{ left:0; }
+  .sprocket-rail.right{ right:0; }
+
+  .wrap{ max-width:980px; margin:0 auto; padding:0 34px; }
+
+  .lb-dots{ display:inline-flex; gap:5px; vertical-align:middle; }
+  .lb-dots span{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .lb-dots span:nth-child(1){ background:var(--lb-green); }
+  .lb-dots span:nth-child(2){ background:var(--lb-orange); }
+  .lb-dots span:nth-child(3){ background:var(--lb-blue); }
+
+  .site-logo{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+  }
+  .site-logo svg{ display:block; }
+  .site-logo-text{
+    font-family:'Bebas Neue', sans-serif;
+    line-height:1;
+    letter-spacing:0.04em;
+    color:var(--cream);
+    text-align:left;
+    font-size:20px;
+  }
+  .site-logo-text em{
+    font-style:normal;
+    display:block;
+    color:var(--gold);
+    font-size:14px;
+    letter-spacing:0.22em;
+    margin-top:3px;
+  }
+  .site-mark-only{ display:flex; justify-content:center; margin-bottom:14px; }
+
+  header.hero{
+    padding:90px 0 60px;
+    text-align:center;
+    position:relative;
+  }
+  .eyebrow{
+    font-family:'Space Mono', monospace;
+    letter-spacing:0.35em;
+    text-transform:uppercase;
+    font-size:11px;
+    color:var(--gold-soft);
+    margin-bottom:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+  }
+  h1.marquee{
+    font-family:'Bebas Neue', sans-serif;
+    font-size:clamp(52px, 11vw, 108px);
+    line-height:0.92;
+    letter-spacing:0.02em;
+    margin:0;
+    color:var(--cream);
+    text-shadow: 0 0 26px rgba(201,162,39,0.28);
+  }
+  h1.marquee em{
+    font-style:normal;
+    color:var(--gold);
+  }
+  .subtitle{
+    font-family:'Fraunces', serif;
+    font-style:italic;
+    font-weight:400;
+    font-size:18px;
+    color:var(--teal-soft);
+    max-width:520px;
+    margin:20px auto 0;
+    text-wrap:balance;
+  }
+
+  .stub-row{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:14px;
+    margin-top:56px;
+  }
+  .stub{
+    position:relative;
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:22px 14px 18px;
+    text-align:center;
+  }
+  .stub::before, .stub::after{
+    content:"";
+    position:absolute;
+    width:14px; height:14px;
+    background:var(--bg);
+    border:1px solid var(--line);
+    border-radius:50%;
+    top:50%; transform:translateY(-50%);
+  }
+  .stub::before{ left:-8px; }
+  .stub::after{ right:-8px; }
+  .stub .num{
+    font-family:'Bebas Neue', sans-serif;
+    font-size:40px;
+    color:var(--gold);
+    display:block;
+    line-height:1;
+  }
+  .star{
+    color:var(--gold);
+    font-style:normal;
+  }
+  .stub .lbl{
+    font-family:'Space Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--teal-soft);
+    display:block;
+    margin-top:8px;
+  }
+
+  section{ padding:70px 0; border-top:1px solid var(--line); }
+  section:first-of-type{ border-top:none; }
+
+  .section-head{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:34px;
+  }
+  .topic-num{
+    width:30px; height:30px;
+    border-radius:50%;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'Space Mono', monospace;
+    font-size:12px;
+    font-weight:700;
+    border:1.5px solid currentColor;
+  }
+  .topic-num.c-green{ color:var(--lb-green); }
+  .topic-num.c-orange{ color:var(--lb-orange); }
+  .topic-num.c-blue{ color:var(--lb-blue); }
+
+  .stub.c-green .num{ color:var(--lb-green); }
+  .stub.c-orange .num{ color:var(--lb-orange); }
+  .stub.c-blue .num{ color:var(--lb-blue); }
+
+  .callout.c-green{ border-color:var(--lb-green); color:var(--lb-green); }
+  .callout.c-orange{ border-color:var(--lb-orange); color:var(--lb-orange); }
+  .callout.c-blue{ border-color:var(--lb-blue); color:var(--lb-blue); }
+  .callout.c-green strong, .callout.c-orange strong, .callout.c-blue strong{ color:inherit; }
+  h2{
+    font-family:'Bebas Neue', sans-serif;
+    font-size:clamp(28px,4vw,40px);
+    letter-spacing:0.02em;
+    margin:0;
+    color:var(--cream);
+  }
+  .subtopic-head{
+    display:flex;
+    align-items:center;
+    gap:11px;
+  }
+  .subtopic-mark{
+    width:9px;
+    height:9px;
+    border-radius:50%;
+    background:var(--gold);
+    flex-shrink:0;
+  }
+  .subtopic-head h3{
+    font-family:'Bebas Neue', sans-serif;
+    font-size:clamp(22px,3vw,28px);
+    letter-spacing:0.02em;
+    margin:0;
+    color:var(--cream);
+  }
+  .lead{
+    font-family:'Fraunces', serif;
+    font-size:16px;
+    color:var(--teal-soft);
+    max-width:600px;
+    margin:-18px 0 30px;
+    line-height:1.6;
+    text-wrap:balance;
+  }
+
+  .callout{
+    font-family:'Fraunces', serif;
+    font-style:italic;
+    font-size:19px;
+    color:var(--gold-soft);
+    border-left:2px solid var(--gold);
+    padding-left:18px;
+    margin:28px 0;
+    line-height:1.55;
+    text-wrap:balance;
+  }
+  .callout strong{ color:var(--gold); font-style:normal; }
+  .callout .sentence{ display:block; }
+  .callout .sentence + .sentence{ margin-top:2px; }
+
+  .chart-box{
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:24px;
+    height:320px;
+    position:relative;
+  }
+  .chart-box.short{ height:260px; }
+
+  .two-col{
+    display:grid;
+    grid-template-columns:1.3fr 1fr;
+    gap:30px;
+    align-items:start;
+  }
+
+  .poster-group{ margin-top:24px; }
+  .poster-group-head{
+    font-family:'Space Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--gold-soft);
+    margin-bottom:14px;
+  }
+  .poster-group.loved .poster-group-head{ color:var(--lb-green); }
+  .poster-group.hated .poster-group-head{ color:var(--lb-orange); }
+  .poster-cards{
+    display:grid;
+    grid-template-columns:repeat(6, 1fr);
+    gap:12px;
+  }
+  .poster-card{
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+  .poster-card.hated{ border-color:rgba(161,61,61,0.35); }
+  .poster-card img{
+    width:100%;
+    aspect-ratio:2 / 3;
+    object-fit:cover;
+    display:block;
+    background:#150a0c;
+  }
+  .poster-card .pc-poster-ph{
+    width:100%;
+    aspect-ratio:2 / 3;
+    background:#150a0c;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:34px;
+    opacity:0.4;
+  }
+  .poster-card .pc-body{ padding:10px 11px 12px; }
+  .poster-card .pc-name{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:13px;
+    color:var(--cream);
+    line-height:1.25;
+    display:block;
+  }
+  .poster-card .pc-meta{
+    font-family:'Space Mono', monospace;
+    font-size:11px;
+    color:var(--teal-soft);
+    margin-top:5px;
+    display:block;
+  }
+  .poster-card.hated .pc-meta{ color:var(--red-accent); }
+  .fav-badge{ color:var(--lb-blue); font-style:normal; font-size:11px; }
+
+  .fact-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:16px;
+  }
+  .fact-card{
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:20px 18px;
+  }
+  .fact-card .fact-num{
+    font-family:'Bebas Neue', sans-serif;
+    font-size:30px;
+    color:var(--teal-soft);
+    display:block;
+  }
+  .fact-card .fact-num.c-green{ color:var(--lb-green); }
+  .fact-card .fact-num.c-orange{ color:var(--lb-orange); }
+  .fact-card .fact-num.c-blue{ color:var(--lb-blue); }
+  .fact-card .fact-title{
+    font-family:'Space Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--gold-soft);
+    margin:4px 0 10px;
+    display:block;
+  }
+  .fact-card p{
+    font-family:'Fraunces', serif;
+    font-size:14px;
+    line-height:1.5;
+    color:var(--cream);
+    margin:0;
+    opacity:0.85;
+  }
+
+
+  footer{
+    text-align:center;
+    padding:60px 0 90px;
+    font-family:'Space Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.08em;
+    color:var(--teal-soft);
+    text-transform:uppercase;
+  }
+  footer .tape{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:8px 20px;
+    margin-top:16px;
+    color:var(--gold-soft);
+  }
+
+  /* ---- WRAPPED SLIDES ---- */
+  #wrappedStage{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    padding:40px 0;
+  }
+  .wrapped-progress{
+    display:flex;
+    gap:6px;
+    margin-bottom:50px;
+  }
+  .wrapped-progress .seg{
+    flex:1;
+    height:3px;
+    border-radius:2px;
+    background:rgba(239,228,207,0.14);
+    overflow:hidden;
+  }
+  .wrapped-progress .seg .fill{
+    height:100%;
+    width:0%;
+    background:var(--gold);
+  }
+  .wrapped-progress .seg.done .fill{ width:100%; }
+  .wrapped-slide{
+    text-align:center;
+    min-height:340px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    user-select:none;
+    animation: wrappedIn .5s ease;
+  }
+  @keyframes wrappedIn{
+    from{ opacity:0; transform:translateY(14px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  .wrapped-eyebrow{
+    font-family:'Space Mono', monospace;
+    letter-spacing:0.3em;
+    text-transform:uppercase;
+    font-size:11px;
+    color:var(--gold-soft);
+    margin-bottom:22px;
+  }
+  .wrapped-big{
+    font-family:'Bebas Neue', sans-serif;
+    font-size:clamp(48px, 12vw, 118px);
+    line-height:0.95;
+    color:var(--cream);
+    margin:0;
+  }
+  .wrapped-big em{ font-style:normal; color:var(--lb-green); }
+  .wrapped-big.c-orange em{ color:var(--lb-orange); }
+  .wrapped-big.c-blue em{ color:var(--lb-blue); }
+  .wrapped-sub{
+    font-family:'Fraunces', serif;
+    font-style:italic;
+    font-size:18px;
+    color:var(--teal-soft);
+    max-width:480px;
+    margin:22px auto 0;
+    line-height:1.55;
+    text-wrap:balance;
+  }
+  .wrapped-nav{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:40px;
+  }
+  .wrapped-hint{
+    font-family:'Space Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--teal-soft);
+    opacity:0.7;
+  }
+
+  /* ---- HEATMAP ---- */
+  .heatmap-wrap{ overflow-x:auto; padding-bottom:8px; }
+  .heatmap-year{ margin-bottom:22px; }
+  .heatmap-year-label{
+    font-family:'Space Mono', monospace;
+    font-size:12px;
+    color:var(--gold-soft);
+    margin-bottom:8px;
+    letter-spacing:0.05em;
+  }
+  .heatmap-months{
+    display:grid;
+    grid-auto-flow:column;
+    grid-auto-columns:11px;
+    gap:3px;
+    height:13px;
+    margin-bottom:4px;
+    overflow:visible;
+  }
+  .heatmap-row{ display:flex; align-items:flex-start; gap:6px; }
+  .heatmap-daylabels{
+    display:grid;
+    grid-template-rows:repeat(7, 11px);
+    gap:3px;
+    margin-top:17px;
+    flex-shrink:0;
+  }
+  .heatmap-daylabels span{
+    font-family:'Space Mono', monospace;
+    font-size:9px;
+    line-height:11px;
+    color:var(--teal-soft);
+  }
+  .heatmap-months span{
+    font-family:'Space Mono', monospace;
+    font-size:9.5px;
+    color:var(--teal-soft);
+    white-space:nowrap;
+  }
+  .heatmap-grid{
+    display:grid;
+    grid-auto-flow:column;
+    grid-template-rows:repeat(7, 11px);
+    gap:3px;
+    width:max-content;
+  }
+  .heatmap-cell{
+    width:11px; height:11px;
+    border-radius:2px;
+    background:rgba(239,228,207,0.06);
+  }
+  .heatmap-cell.l1{ background:rgba(64,188,244,0.35); }
+  .heatmap-cell.l2{ background:rgba(64,188,244,0.65); }
+  .heatmap-cell.l3{ background:var(--lb-blue); }
+  .heatmap-cell.empty{ background:transparent; }
+  .heatmap-legend{
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:16px;
+    margin-top:14px;
+    font-family:'Space Mono', monospace;
+    font-size:10.5px;
+    color:var(--teal-soft);
+  }
+  .legend-item{ display:inline-flex; align-items:center; gap:6px; }
+  .heatmap-legend .heatmap-cell{ width:10px; height:10px; }
+  .heatmap-toggle{
+    display:block;
+    margin:18px 0 4px;
+    background:none;
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:8px 18px;
+    font-family:'Space Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color:var(--gold-soft);
+    cursor:pointer;
+  }
+  .heatmap-toggle:hover{ border-color:var(--gold-soft); }
+  #heatmapOlder{ margin-top:16px; }
+
+  /* ---- GENRE ---- */
+  .genre-pills{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin:26px 0 22px;
+  }
+  .genre-pill{
+    font-family:'Space Mono', monospace;
+    font-size:12px;
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    color:var(--cream);
+    padding:9px 16px;
+    border-radius:20px;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .genre-pill:hover{ border-color:var(--gold-soft); }
+  .genre-pill.active{ background:var(--gold); border-color:var(--gold); color:var(--bg); font-weight:700; }
+  .suggestion-grid{
+    display:grid;
+    grid-template-columns:repeat(5, 1fr);
+    gap:10px;
+  }
+  .suggestion-card{
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+  .suggestion-card .sc-poster{
+    width:100%;
+    aspect-ratio:2 / 3;
+    background:#150a0c;
+    position:relative;
+  }
+  .suggestion-card .sc-poster img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+  }
+  .suggestion-card .sc-poster-fail{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .suggestion-card .sc-poster-fail::after{
+    content:"🎬";
+    font-size:32px;
+    opacity:0.4;
+  }
+  .suggestion-card .sc-poster-fail img{ display:none; }
+  .suggestion-card .sc-body{
+    padding:14px 14px 16px;
+  }
+  .suggestion-card .sc-title{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:15px;
+    color:var(--cream);
+  }
+  .suggestion-card .sc-year{
+    font-family:'Space Mono', monospace;
+    font-size:11px;
+    color:var(--gold-soft);
+    margin-left:6px;
+  }
+  .suggestion-card .sc-hook{
+    font-family:'Fraunces', serif;
+    font-style:normal;
+    font-weight:400;
+    font-size:13.5px;
+    color:var(--cream);
+    opacity:0.78;
+    margin-top:8px;
+    line-height:1.5;
+  }
+  .suggestion-card .sc-hook.clamped{
+    display:-webkit-box;
+    -webkit-line-clamp:4;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .suggestion-card .sc-toggle{
+    background:none;
+    border:none;
+    color:var(--gold-soft);
+    font-family:'Space Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.04em;
+    cursor:pointer;
+    padding:6px 0 0;
+    text-decoration:underline;
+  }
+  .suggestion-card .sc-toggle:hover{ color:var(--gold); }
+
+  /* ---- PESSOAS (diretor/ator) ---- */
+  .people-grid{
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:16px;
+  }
+  .person-card{
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    gap:16px;
+    padding:16px;
+  }
+  .person-card .person-photo{
+    width:84px;
+    height:84px;
+    border-radius:50%;
+    object-fit:cover;
+    flex-shrink:0;
+    background:#150a0c;
+  }
+  .person-card .person-photo-ph{
+    width:84px;
+    height:84px;
+    border-radius:50%;
+    flex-shrink:0;
+    background:#150a0c;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:30px;
+    opacity:0.4;
+  }
+  .person-card .person-role{
+    font-family:'Space Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--gold-soft);
+    display:block;
+  }
+  .person-card .person-name{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:17px;
+    color:var(--cream);
+    display:block;
+    margin-top:4px;
+  }
+  .person-card .person-count{
+    font-family:'Space Mono', monospace;
+    font-size:12px;
+    color:var(--teal-soft);
+    display:block;
+    margin-top:4px;
+  }
+
+  /* ---- SHARE CARD ---- */
+  .share-card{
+    max-width:360px;
+    margin:30px auto 0;
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(201,162,39,0.16), transparent 55%),
+      var(--bg-2);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:36px 30px 26px;
+    text-align:center;
+  }
+  .share-card-logo{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+    margin-bottom:26px;
+  }
+  .share-card-logo .share-wordmark{
+    font-family:'Bebas Neue', sans-serif;
+    font-size:17px;
+    letter-spacing:0.14em;
+    color:var(--cream);
+  }
+  .share-hero-num{
+    font-family:'Bebas Neue', sans-serif;
+    font-size:64px;
+    color:var(--gold);
+    line-height:1;
+    display:block;
+  }
+  .share-hero-lbl{
+    font-family:'Space Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--teal-soft);
+    margin-top:6px;
+    display:block;
+  }
+  .share-card-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px 14px;
+    margin-top:28px;
+    text-align:left;
+  }
+  .share-stat{
+    border-top:1px solid var(--line);
+    padding-top:11px;
+  }
+  .share-stat .share-num{
+    font-family:'Bebas Neue', sans-serif;
+    font-size:19px;
+    color:var(--cream);
+    display:block;
+    line-height:1.15;
+  }
+  .share-stat .share-lbl{
+    font-family:'Space Mono', monospace;
+    font-size:9px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color:var(--gold-soft);
+    display:block;
+    margin-top:4px;
+  }
+  .share-card-footer{
+    margin-top:26px;
+    font-family:'Space Mono', monospace;
+    font-size:8.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--teal-soft);
+    opacity:0.7;
+  }
+
+  /* ---- SAGAS ---- */
+  .saga-subhead{
+    font-family:'Space Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--gold-soft);
+    margin:36px 0 16px;
+  }
+  .saga-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:14px;
+  }
+  .saga-card{
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+  .saga-card .saga-poster{
+    width:100%;
+    aspect-ratio:2 / 3;
+    object-fit:cover;
+    display:block;
+    background:#150a0c;
+  }
+  .saga-card .saga-body{ padding:14px 16px 16px; }
+  .saga-card .saga-title{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:16px;
+    color:var(--cream);
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .saga-badge{
+    font-family:'Space Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.04em;
+    border-radius:20px;
+    padding:2px 9px;
+    border:1px solid currentColor;
+    white-space:nowrap;
+  }
+  .saga-badge.complete{ color:var(--lb-green); }
+  .saga-badge.partial{ color:var(--lb-orange); }
+  .saga-card .saga-films{
+    font-family:'Space Mono', monospace;
+    font-size:11.5px;
+    color:var(--teal-soft);
+    margin-top:8px;
+    line-height:1.6;
+  }
+  .saga-mini-grid{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:10px;
+  }
+  .saga-mini{
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:12px 14px;
+  }
+  .saga-mini .saga-mini-name{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:13.5px;
+    color:var(--cream);
+    display:block;
+  }
+  .saga-mini .saga-badge{ margin-top:6px; display:inline-block; }
+  .rec-saga-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:14px;
+  }
+  .rec-saga-card{
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+  .rec-saga-card .saga-poster{
+    width:100%;
+    aspect-ratio:2 / 3;
+    object-fit:cover;
+    display:block;
+    background:#150a0c;
+  }
+  .rec-saga-card .saga-body{ padding:14px 16px 16px; }
+  .rec-saga-card .saga-title{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:16px;
+    color:var(--cream);
+  }
+  .rec-saga-card .saga-why{
+    font-family:'Fraunces', serif;
+    font-style:italic;
+    font-size:12.5px;
+    color:var(--gold-soft);
+    margin-top:8px;
+    line-height:1.5;
+  }
+  .rec-saga-card .saga-synopsis{
+    font-family:'Fraunces', serif;
+    font-size:13px;
+    color:var(--cream);
+    opacity:0.78;
+    margin-top:8px;
+    line-height:1.5;
+  }
+
+  /* ---- DURATION ---- */
+  .duration-hero{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+    margin-bottom:26px;
+  }
+  .duration-card{
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:26px 22px;
+    text-align:center;
+  }
+  .duration-card .d-num{
+    font-family:'Bebas Neue', sans-serif;
+    font-size:54px;
+    color:var(--lb-orange);
+    line-height:1;
+  }
+  .duration-card .d-lbl{
+    font-family:'Space Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--teal-soft);
+    margin-top:8px;
+    display:block;
+  }
+  .equiv-list{
+    list-style:none;
+    margin:0; padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .equiv-list li{
+    font-family:'Fraunces', serif;
+    font-size:15px;
+    color:var(--cream);
+    background:var(--bg-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:14px 18px;
+  }
+  .equiv-list li strong{ color:var(--gold-soft); }
+
+  .text-link-btn{
+    display:block;
+    margin:22px auto 0;
+    background:none;
+    border:none;
+    font-family:'Space Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--teal-soft);
+    text-decoration:underline;
+    cursor:pointer;
+  }
+  .btn-gold{
+    background:var(--gold);
+    color:var(--bg);
+    border:none;
+    font-family:'Space Mono', monospace;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    font-size:12px;
+    font-weight:700;
+    padding:15px 30px;
+    border-radius:30px;
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  .btn-gold:hover{ background:var(--gold-soft); }
+  .btn-ghost{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--teal-soft);
+    font-family:'Space Mono', monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    padding:11px 20px;
+    border-radius:30px;
+    cursor:pointer;
+  }
+  .btn-ghost:hover{ border-color:var(--gold-soft); color:var(--gold-soft); }
+
+  #statsStage{ display:none; }
+
+  /* ---- UPLOAD ---- */
+  #uploadStage{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:60px 0;
+  }
+  .upload-logo{ margin-bottom:26px; }
+  #uploadStage h1{
+    font-family:'Bebas Neue', sans-serif;
+    font-size:clamp(44px, 9vw, 84px);
+    line-height:0.95;
+    letter-spacing:0.02em;
+    margin:0;
+    color:var(--cream);
+  }
+  #uploadStage h1 em{ font-style:normal; color:var(--gold); }
+  #uploadStage .subtitle{ margin-bottom:34px; }
+  .dropzone{
+    width:100%;
+    max-width:520px;
+    border:2px dashed var(--line);
+    border-radius:14px;
+    padding:44px 30px;
+    background:var(--bg-2);
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .dropzone:hover, .dropzone.dragover{
+    border-color:var(--gold-soft);
+    background:#33181d;
+  }
+  .dropzone .dz-icon{ font-size:40px; }
+  .dropzone .dz-title{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:19px;
+    color:var(--cream);
+    margin:14px 0 6px;
+  }
+  .dropzone .dz-hint{
+    font-family:'Space Mono', monospace;
+    font-size:12px;
+    color:var(--teal-soft);
+    line-height:1.6;
+  }
+  .dz-help{
+    font-family:'Space Mono', monospace;
+    font-size:11px;
+    color:var(--teal-soft);
+    max-width:460px;
+    margin:24px auto 0;
+    line-height:1.7;
+    opacity:0.85;
+  }
+  .dz-help a{ color:var(--gold-soft); }
+  .upload-status{
+    font-family:'Space Mono', monospace;
+    font-size:13px;
+    color:var(--gold-soft);
+    margin-top:22px;
+    min-height:20px;
+  }
+  .upload-status.error{ color:var(--red-accent); }
+  .upload-progress{
+    width:100%;
+    max-width:520px;
+    height:4px;
+    border-radius:2px;
+    background:rgba(239,228,207,0.08);
+    overflow:hidden;
+    margin:16px auto 0;
+    display:none;
+  }
+  .upload-progress .bar{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg, var(--lb-green), var(--lb-blue), var(--lb-orange));
+    transition:width .2s ease;
+  }
+
+  @media (max-width:760px){
+    .stub-row{ grid-template-columns:repeat(2,1fr); }
+    .two-col{ grid-template-columns:1fr; }
+    .fact-grid{ grid-template-columns:1fr 1fr; }
+    .duration-hero{ grid-template-columns:1fr; }
+    .suggestion-grid{ grid-template-columns:repeat(3, 1fr); }
+    .saga-grid{ grid-template-columns:repeat(2, 1fr); }
+    .saga-mini-grid{ grid-template-columns:repeat(2, 1fr); }
+    .rec-saga-grid{ grid-template-columns:repeat(2, 1fr); }
+    .poster-cards{ grid-template-columns:repeat(3, 1fr); }
+  }
+  @media (max-width:460px){
+    .fact-grid{ grid-template-columns:1fr; }
+    .wrap{ padding:0 22px 0 34px; }
+    .suggestion-grid{ grid-template-columns:repeat(2, 1fr); }
+    .saga-grid{ grid-template-columns:1fr; }
+    .saga-mini-grid{ grid-template-columns:1fr; }
+    .rec-saga-grid{ grid-template-columns:1fr; }
+    .poster-cards{ grid-template-columns:repeat(3, 1fr); }
+    .people-grid{ grid-template-columns:1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sprocket-rail left"></div>
+<div class="sprocket-rail right"></div>
+
+<div class="wrap">
+
+  <!-- UPLOAD -->
+  <div id="uploadStage">
+    <div class="upload-logo site-logo">
+      <svg viewBox="0 0 64 64" width="52" height="52" aria-hidden="true">
+        <circle cx="24" cy="27" r="15" fill="#00e054" opacity="0.9"></circle>
+        <circle cx="40" cy="27" r="15" fill="#40bcf4" opacity="0.85" style="mix-blend-mode:screen"></circle>
+        <circle cx="32" cy="42" r="15" fill="#ff8000" opacity="0.85" style="mix-blend-mode:screen"></circle>
+      </svg>
+    </div>
+    <h1>LETTERBOXD <em>RECAP</em></h1>
+    <p class="subtitle">Suba o export do seu Letterboxd e veja a recapitulação completa do seu diário de cinema.</p>
+
+    <div class="dropzone" id="dropzone">
+      <div class="dz-icon">📁</div>
+      <div class="dz-title">Arraste o arquivo aqui</div>
+      <div class="dz-hint">suba o <strong>.zip inteiro</strong> do export (recomendado), ou o diary.csv solto</div>
+      <button type="button" class="btn-gold" id="btnPick" style="margin-top:18px;">Escolher arquivo</button>
+    </div>
+    <input type="file" id="fileInput" style="display:none;">
+    <div class="upload-progress" id="uploadProgress"><div class="bar" id="uploadProgressBar"></div></div>
+    <div class="upload-status" id="uploadStatus"></div>
+
+    <div class="dz-help">
+      Pra pegar seu export: entre no Letterboxd no computador, vá em <strong>Settings → Import &amp; Export → Export Your Data</strong>. Vai baixar um .zip. Suba esse .zip aqui (ele traz suas notas atuais e a lista completa de assistidos, então o recap fica bem mais preciso do que só com o diary.csv). Nada sai do seu navegador, tudo é processado no seu próprio computador.
+    </div>
+  </div>
+
+  <!-- WRAPPED SLIDES -->
+  <div id="wrappedStage" style="display:none;">
+    <div class="site-logo" style="margin-bottom:36px;">
+      <svg viewBox="0 0 64 64" width="42" height="42" aria-hidden="true">
+        <circle cx="24" cy="27" r="15" fill="#00e054" opacity="0.9"></circle>
+        <circle cx="40" cy="27" r="15" fill="#40bcf4" opacity="0.85" style="mix-blend-mode:screen"></circle>
+        <circle cx="32" cy="42" r="15" fill="#ff8000" opacity="0.85" style="mix-blend-mode:screen"></circle>
+      </svg>
+      <span class="site-logo-text">LETTERBOXD<em>RECAP</em></span>
+    </div>
+    <div class="wrapped-progress" id="wrappedProgress"></div>
+    <div class="wrapped-slide" id="wrappedSlideBody">
+      <!-- filled by JS -->
+    </div>
+    <div class="wrapped-nav">
+      <span class="wrapped-hint">toque pra avançar</span>
+      <button class="text-link-btn" id="btnSkipWrapped" style="margin:0;">pular introdução</button>
+    </div>
+  </div>
+
+  <!-- ESTATÍSTICAS COMPLETAS -->
+  <div id="statsStage">
+
+    <header class="hero">
+      <div class="site-mark-only">
+        <svg viewBox="0 0 64 64" width="36" height="36" aria-hidden="true">
+          <circle cx="24" cy="27" r="15" fill="#00e054" opacity="0.9"></circle>
+          <circle cx="40" cy="27" r="15" fill="#40bcf4" opacity="0.85" style="mix-blend-mode:screen"></circle>
+          <circle cx="32" cy="42" r="15" fill="#ff8000" opacity="0.85" style="mix-blend-mode:screen"></circle>
+        </svg>
+      </div>
+      <div class="eyebrow"><span class="lb-dots"><span></span><span></span><span></span></span> criado por Paulo Lopes <span class="lb-dots"><span></span><span></span><span></span></span></div>
+      <h1 class="marquee">LETTERBOXD<br><em>RECAP</em></h1>
+      <p class="subtitle">Bora ver o que o seu diário no Letterboxd diz sobre você.</p>
+
+      <div class="stub-row">
+        <div class="stub c-green"><span class="num" id="statNum-total">--</span><span class="lbl">Filmes no diário</span></div>
+        <div class="stub c-orange"><span class="num" id="statNum-avg">--</span><span class="lbl">Nota média</span></div>
+        <div class="stub c-blue"><span class="num" id="statNum-rewatch">--</span><span class="lbl">Filmes revistos</span></div>
+        <div class="stub"><span class="num" id="statNum-oldest">--</span><span class="lbl">Filme mais antigo</span></div>
+      </div>
+    </header>
+
+    <section id="anos">
+      <div class="section-head">
+        <span class="topic-num c-green">01</span>
+        <h2>Ano a ano</h2>
+      </div>
+      <p class="lead">Quantos filmes você registrou a cada ano desde o começo do diário.</p>
+      <div class="chart-box"><canvas id="chartYear"></canvas></div>
+      <div class="callout c-green" id="calloutAnos"></div>
+    </section>
+
+    <section id="meses">
+      <div class="section-head">
+        <span class="topic-num c-orange">02</span>
+        <h2>Sua temporada de cinema</h2>
+      </div>
+      <p class="lead">Tem mês que você vive no cinema e mês que quase não acontece.</p>
+      <div class="chart-box"><canvas id="chartMonth"></canvas></div>
+      <div class="callout c-orange" id="calloutMeses"></div>
+    </section>
+
+    <section id="notas">
+      <div class="section-head">
+        <span class="topic-num c-green">03</span>
+        <h2>Nota justa</h2>
+      </div>
+      <p class="lead">Como você distribui as estrelas do seu diário.</p>
+      <div class="chart-box"><canvas id="chartRating"></canvas></div>
+      <div class="callout c-green" id="calloutNotas"></div>
+
+      <div class="poster-group loved">
+        <div class="poster-group-head" id="lovedHead">Amados · nota 5 <span class="star">★</span></div>
+        <div class="poster-cards" id="lovedCards"></div>
+      </div>
+
+      <div class="poster-group hated">
+        <div class="poster-group-head">Odiados · nota ≤1.5 <span class="star">★</span></div>
+        <div class="poster-cards" id="hatedCards"></div>
+      </div>
+    </section>
+
+    <section id="pessoas">
+      <div class="section-head">
+        <span class="topic-num c-blue">04</span>
+        <h2>Diretor e ator mais vistos</h2>
+      </div>
+      <p class="lead">As pessoas que mais aparecem nos créditos dos filmes do seu diário.</p>
+      <div class="people-grid" id="peopleGrid"></div>
+    </section>
+
+    <section id="decadas">
+      <div class="section-head">
+        <span class="topic-num c-orange">05</span>
+        <h2>Década favorita</h2>
+      </div>
+      <p class="lead">De que época são os filmes que você escolhe assistir.</p>
+      <div class="chart-box short"><canvas id="chartDecade"></canvas></div>
+      <div class="callout c-orange" id="calloutDecadas"></div>
+    </section>
+
+    <section id="semana">
+      <div class="section-head">
+        <span class="topic-num c-blue">06</span>
+        <h2 id="semanaTitle">Seu dia de cinema</h2>
+      </div>
+      <p class="lead">Quando na semana você costuma assistir filme.</p>
+      <div class="chart-box short"><canvas id="chartDow"></canvas></div>
+      <div class="callout c-blue" id="calloutSemana"></div>
+    </section>
+
+    <section id="generos">
+      <div class="section-head">
+        <span class="topic-num c-green">07</span>
+        <h2>Seu gênero favorito</h2>
+      </div>
+      <p class="lead" id="genreLead">Classificamos os filmes do seu diário por gênero pra descobrir onde você realmente vive.</p>
+      <div class="chart-box"><canvas id="chartGenre"></canvas></div>
+      <div class="callout c-green" id="calloutGenero1"></div>
+      <div class="callout c-orange" id="calloutGenero2"></div>
+      <div class="callout c-blue" id="calloutGenero3"></div>
+
+      <div style="margin-top:38px;">
+        <div class="subtopic-head">
+          <span class="subtopic-mark"></span>
+          <h3>Sugestões por gênero</h3>
+        </div>
+        <p class="lead" style="margin-top:8px;">Escolhe um gênero e a gente sugere filmes bem avaliados que combinam com seu gosto, todos de fora do seu diário.</p>
+        <div class="genre-pills" id="genrePills"></div>
+        <div class="suggestion-grid" id="suggestionGrid"></div>
+      </div>
+    </section>
+
+    <section id="duracao">
+      <div class="section-head">
+        <span class="topic-num c-orange">08</span>
+        <h2>Quanto tempo isso tomou</h2>
+      </div>
+      <p class="lead">Quanto tempo você já passou vendo filme, desde o início do seu diário até hoje.</p>
+      <div class="duration-hero">
+        <div class="duration-card"><span class="d-num" id="durHours">--</span><span class="d-lbl">assistidas no total</span></div>
+        <div class="duration-card"><span class="d-num" id="durDays">--</span><span class="d-lbl">corridos de filme</span></div>
+      </div>
+      <div class="chart-box short"><canvas id="chartHours"></canvas></div>
+      <ul class="equiv-list" style="margin-top:20px;" id="durEquiv"></ul>
+    </section>
+
+    <section id="curiosidades">
+      <div class="section-head">
+        <span class="topic-num c-blue">09</span>
+        <h2>Curiosidades da ficha</h2>
+      </div>
+      <div class="fact-grid" id="factGrid"></div>
+    </section>
+
+    <section id="sagas">
+      <div class="section-head">
+        <span class="topic-num c-green">10</span>
+        <h2>Sagas</h2>
+      </div>
+      <p class="lead">As franquias e coleções que mais aparecem no seu diário.</p>
+
+      <div class="saga-subhead">sagas que mais aparecem na sua ficha</div>
+      <div class="saga-grid" id="sagaGrid"></div>
+    </section>
+
+    <section id="compartilhar">
+      <div class="section-head">
+        <h2>Compartilhe seu recap</h2>
+      </div>
+      <p class="lead">Baixa um cartão compacto com os números principais pra postar ou mandar pra alguém.</p>
+
+      <div class="share-card" id="shareCard">
+        <div class="share-card-logo">
+          <svg viewBox="0 0 64 64" width="34" height="34" aria-hidden="true">
+            <circle cx="24" cy="27" r="15" fill="#00e054" opacity="0.9"></circle>
+            <circle cx="40" cy="27" r="15" fill="#40bcf4" opacity="0.85" style="mix-blend-mode:screen"></circle>
+            <circle cx="32" cy="42" r="15" fill="#ff8000" opacity="0.85" style="mix-blend-mode:screen"></circle>
+          </svg>
+          <span class="share-wordmark">LETTERBOXD RECAP</span>
+        </div>
+        <span class="share-hero-num" id="shareHeroNum">--</span>
+        <span class="share-hero-lbl" id="shareHeroLbl">filmes no diário</span>
+        <div class="share-card-grid" id="shareCardGrid"></div>
+        <div class="share-card-footer">gerado a partir do meu diário no Letterboxd</div>
+      </div>
+
+      <button class="btn-gold" id="btnExportCard" style="margin:26px auto 0; display:block;">Baixar cartão (PNG)</button>
+      <div class="upload-status" id="exportStatus" style="text-align:center;"></div>
+    </section>
+
+    <footer>
+      <div><span class="lb-dots"><span></span><span></span><span></span></span> Gerado a partir do seu export do Letterboxd, processado no seu próprio navegador</div>
+      <button class="btn-ghost tape" id="btnRestart">rever a introdução</button>
+    </footer>
+
+  </div>
+
+</div>
+
+<script>
+/* ================= DATA ENGINE (Fase 1) ================= */
+let S = null; // objeto global com as estatisticas computadas
+
+const MONTHS_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const WEEKDAYS_PT = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom']; // ordem de exibicao (segunda a domingo)
+
+// ---- CSV parser (lida com campos entre aspas e virgulas internas) ----
+function parseCSV(text){
+  const rows = [];
+  let field = '', row = [], inQuotes = false;
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  for (let i = 0; i < text.length; i++){
+    const c = text[i];
+    if (inQuotes){
+      if (c === '"'){
+        if (text[i+1] === '"'){ field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else field += c;
+    }
+  }
+  if (field.length > 0 || row.length > 0){ row.push(field); rows.push(row); }
+  if (!rows.length) return [];
+  const headers = rows[0].map(h => h.trim());
+  return rows.slice(1).filter(r => r.length && r.some(v => v !== '')).map(r => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = (r[i] !== undefined ? r[i] : ''));
+    return obj;
+  });
+}
+
+function parseDate(s){
+  // espera yyyy-MM-dd
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+function isoLocal(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+// ---- calcula todas as estatisticas a partir das linhas do diary.csv ----
+// ratingsRows (ratings.csv) traz a nota ATUAL de cada filme; usamos ela pra sobrescrever a nota
+// (possivelmente antiga) do diario. watchedRows (watched.csv) amplia a lista de "ja vistos".
+// likesRows (likes/films.csv) traz os filmes curtidos. profileRows (profile.csv) traz os favoritos do perfil.
+function computeStats(diaryRows, ratingsRows, watchedRows, likesRows, profileRows){
+  ratingsRows = ratingsRows || [];
+  watchedRows = watchedRows || [];
+  likesRows = likesRows || [];
+  profileRows = profileRows || [];
+  const nkey = (name, year) => (name||'').trim().toLowerCase() + '|' + (String(year||'').trim());
+  // nota atual por nome+ano (fonte: ratings.csv)
+  const currentRating = {};
+  ratingsRows.forEach(r => {
+    const rr = (r['Rating'] || '').trim();
+    if (rr !== '') currentRating[nkey(r['Name'], r['Year'])] = parseFloat(rr);
+  });
+
+  const films = diaryRows.map(r => {
+    const wd = (r['Watched Date'] && r['Watched Date'].trim()) ? r['Watched Date'].trim() : (r['Date'] || '').trim();
+    const dt = parseDate(wd);
+    const ratingRaw = (r['Rating'] || '').trim();
+    const name = (r['Name'] || '').trim();
+    const year = parseInt((r['Year'] || '').trim(), 10) || null;
+    const k = nkey(name, year);
+    // prioriza a nota atual do ratings.csv; senao usa a do diario
+    let rating = ratingRaw === '' ? null : parseFloat(ratingRaw);
+    if (currentRating[k] !== undefined) rating = currentRating[k];
+    return {
+      name, year, rating,
+      rewatch: (r['Rewatch'] || '').trim().toLowerCase() === 'yes',
+      date: dt
+    };
+  }).filter(f => f.date && f.name);
+
+  // conjunto completo de "ja vistos" (nomes) somando diary + watched + ratings
+  const seenNames = new Set();
+  diaryRows.forEach(r => { if (r['Name']) seenNames.add(r['Name'].trim().toLowerCase()); });
+  watchedRows.forEach(r => { if (r['Name']) seenNames.add(r['Name'].trim().toLowerCase()); });
+  ratingsRows.forEach(r => { if (r['Name']) seenNames.add(r['Name'].trim().toLowerCase()); });
+
+  films.sort((a,b) => a.date - b.date);
+  if (!films.length) throw new Error('Nenhuma linha valida encontrada no diario.');
+
+  const rated = films.filter(f => f.rating != null);
+  const total = films.length;
+  const avgRating = rated.length ? rated.reduce((s,f) => s+f.rating, 0) / rated.length : 0;
+  const rewatches = films.filter(f => f.rewatch).length;
+
+  // por ano (do watched date)
+  const byYear = {};
+  films.forEach(f => { const y = f.date.getFullYear(); byYear[y] = (byYear[y]||0)+1; });
+  const years = Object.keys(byYear).map(Number).sort((a,b)=>a-b);
+  const maxYear = years.reduce((mx,y) => byYear[y] > byYear[mx] ? y : mx, years[0]);
+
+  // por mes (1..12, todos os anos somados)
+  const byMonth = new Array(12).fill(0);
+  films.forEach(f => byMonth[f.date.getMonth()]++);
+  let topMonth = 0; for (let i=1;i<12;i++) if (byMonth[i] > byMonth[topMonth]) topMonth = i;
+  let lowMonth = 0; for (let i=1;i<12;i++) if (byMonth[i] < byMonth[lowMonth]) lowMonth = i;
+
+  // por dia da semana. getDay(): 0=Dom..6=Sab. Exibimos Seg..Dom.
+  const dowRaw = new Array(7).fill(0); // index por getDay()
+  films.forEach(f => dowRaw[f.date.getDay()]++);
+  const byWeekday = [dowRaw[1],dowRaw[2],dowRaw[3],dowRaw[4],dowRaw[5],dowRaw[6],dowRaw[0]]; // Seg..Dom
+  let topDowIdx = 0; for (let i=1;i<7;i++) if (byWeekday[i] > byWeekday[topDowIdx]) topDowIdx = i;
+  let lowDowIdx = 0; for (let i=1;i<7;i++) if (byWeekday[i] < byWeekday[lowDowIdx]) lowDowIdx = i;
+
+  // por decada (ano de lancamento)
+  const decadeMap = {};
+  films.forEach(f => { if (f.year){ const d = Math.floor(f.year/10)*10; decadeMap[d] = (decadeMap[d]||0)+1; } });
+  const decades = Object.keys(decadeMap).map(Number).sort((a,b)=>a-b);
+  let topDecade = decades[0]; decades.forEach(d => { if (decadeMap[d] > decadeMap[topDecade]) topDecade = d; });
+
+  // histograma de notas 0.5..5.0
+  const ratingSteps = [0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0];
+  const ratingHist = ratingSteps.map(step => rated.filter(f => f.rating === step).length);
+
+  // filmes curtidos (like), pelo nome (fonte: likes/films.csv, se existir no export)
+  const likedNames = new Set();
+  likesRows.forEach(r => { if (r['Name']) likedNames.add(r['Name'].trim().toLowerCase()); });
+
+  // favoritos do perfil: profile.csv guarda links curtos (boxd.it/...) na coluna "Favorite Films".
+  // resolvemos cada link pro nome do filme cruzando com a mesma URI em ratings/watched/diary.
+  const uriToFilm = {};
+  function indexUri(rows){
+    rows.forEach(r => {
+      const uri = (r['Letterboxd URI'] || '').trim();
+      if (uri && !uriToFilm[uri]) uriToFilm[uri] = (r['Name'] || '').trim();
+    });
+  }
+  indexUri(ratingsRows); indexUri(watchedRows); indexUri(diaryRows);
+  const favoriteNames = [];
+  if (profileRows.length && profileRows[0]['Favorite Films']){
+    profileRows[0]['Favorite Films'].split(',').map(s => s.trim()).filter(Boolean).forEach(uri => {
+      const name = uriToFilm[uri];
+      if (name) favoriteNames.push(name);
+    });
+  }
+
+  // amados: nota 5 (e curtidos, quando sabemos quais foram). Favoritos do perfil sempre primeiro,
+  // depois os demais do mais recente pro mais antigo.
+  const fiveStarByName = new Map();
+  films.filter(f => f.rating === 5).forEach(f => fiveStarByName.set(f.name, f)); // films esta em ordem crescente de data, entao a ultima atribuicao fica com a mais recente
+  let lovedCandidates = [...fiveStarByName.values()];
+  if (likedNames.size) lovedCandidates = lovedCandidates.filter(f => likedNames.has(f.name.toLowerCase()));
+  const favSet = new Set(favoriteNames);
+  const favFilms = favoriteNames.map(n => lovedCandidates.find(f => f.name === n)).filter(Boolean);
+  const restFilms = lovedCandidates.filter(f => !favSet.has(f.name)).sort((a,b) => b.date - a.date);
+  const loved = [...favFilms, ...restFilms];
+
+  const seenHated = new Set();
+  const hated = [];
+  films.filter(f => f.rating != null && f.rating <= 1.5).sort((a,b)=>a.rating-b.rating).forEach(f => { if (!seenHated.has(f.name)){ seenHated.add(f.name); hated.push(f); } });
+
+  // heatmap {iso: count}
+  const heatmap = {};
+  films.forEach(f => { const iso = isoLocal(f.date); heatmap[iso] = (heatmap[iso]||0)+1; });
+
+  // maior sequencia de dias consecutivos
+  const uniqueDays = [...new Set(films.map(f => isoLocal(f.date)))].sort();
+  let best = uniqueDays.length ? 1 : 0, cur = 1, bestStart = uniqueDays[0], bestEnd = uniqueDays[0], curStart = uniqueDays[0];
+  for (let i=1;i<uniqueDays.length;i++){
+    const prev = parseDate(uniqueDays[i-1]), now = parseDate(uniqueDays[i]);
+    const diff = Math.round((now - prev) / 86400000);
+    if (diff === 1){ cur++; if (cur > best){ best = cur; bestStart = curStart; bestEnd = uniqueDays[i]; } }
+    else { cur = 1; curStart = uniqueDays[i]; }
+  }
+
+  // filme mais antigo por ano de lancamento
+  const withYear = films.filter(f => f.year);
+  const oldestYear = withYear.length ? Math.min(...withYear.map(f => f.year)) : null;
+
+  // rewatches: filmes vistos mais de uma vez (por nome)
+  const nameCounts = {};
+  films.forEach(f => nameCounts[f.name] = (nameCounts[f.name]||0)+1);
+  const mostRewatched = Object.entries(nameCounts).filter(([,c]) => c > 1).sort((a,b)=>b[1]-a[1]);
+
+  // maratonas (3+ no mesmo dia)
+  const dayGroups = {};
+  films.forEach(f => { const iso = isoLocal(f.date); (dayGroups[iso] = dayGroups[iso]||[]).push(f); });
+  const marathons = Object.entries(dayGroups).filter(([,arr]) => arr.length >= 3).sort();
+
+  // recorde mensal (ano-mes com mais filmes)
+  const ymCounts = {};
+  films.forEach(f => { const ym = `${f.date.getFullYear()}-${String(f.date.getMonth()+1).padStart(2,'0')}`; ymCounts[ym] = (ymCounts[ym]||0)+1; });
+  const monthRecord = Object.entries(ymCounts).sort((a,b)=>b[1]-a[1])[0];
+
+  return {
+    films, total, avgRating, rewatches,
+    byYear, years, maxYear,
+    byMonth, topMonth, lowMonth,
+    byWeekday, topDowIdx, lowDowIdx,
+    decadeMap, decades, topDecade,
+    ratingSteps, ratingHist,
+    loved, hated,
+    hasLikes: likedNames.size > 0,
+    favoriteNames,
+    heatmap,
+    streak: { len: best, start: bestStart, end: bestEnd },
+    oldestYear,
+    mostRewatched, marathons, monthRecord,
+    firstWatch: films[0], lastWatch: films[films.length-1],
+    activeDays: uniqueDays.length,
+    seenNames
+  };
+}
+
+// ---- UPLOAD: le zip ou csv, extrai diary.csv, computa e inicia ----
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const uploadStatus = document.getElementById('uploadStatus');
+const uploadProgress = document.getElementById('uploadProgress');
+const uploadProgressBar = document.getElementById('uploadProgressBar');
+
+function setStatus(msg, isError){
+  uploadStatus.textContent = msg;
+  uploadStatus.classList.toggle('error', !!isError);
+}
+
+dropzone.addEventListener('click', () => fileInput.click());
+document.getElementById('btnPick').addEventListener('click', e => { e.stopPropagation(); fileInput.click(); });
+dropzone.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  e.stopPropagation();
+  dropzone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); e.target.value = ''; });
+
+// impede o navegador de abrir o arquivo se o usuario soltar fora da dropzone
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => {
+  e.preventDefault();
+  if (document.getElementById('uploadStage').style.display !== 'none' && e.dataTransfer && e.dataTransfer.files.length){
+    handleFile(e.dataTransfer.files[0]);
+  }
+});
+
+// tira um BOM (marca de encoding) do inicio do texto, se tiver, senao o parser confunde o nome da 1a coluna
+function stripBOM(s){ return s && s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s; }
+
+// entre varios arquivos que batem o mesmo nome dentro do zip, pega o maior (o real, nao um vazio/backup)
+async function pickBestEntry(candidates){
+  if (!candidates.length) return null;
+  if (candidates.length === 1) return candidates[0].async('string').then(stripBOM);
+  const texts = await Promise.all(candidates.map(f => f.async('string')));
+  let best = 0;
+  for (let i = 1; i < texts.length; i++) if (texts[i].length > texts[best].length) best = i;
+  return stripBOM(texts[best]);
+}
+
+async function handleFile(file){
+  try {
+    setStatus('Lendo ' + file.name + '...');
+    let diaryText = null, ratingsText = null, watchedText = null, likesText = null, profileText = null;
+    if (file.name.toLowerCase().endsWith('.zip')){
+      if (typeof JSZip === 'undefined'){
+        setStatus('A biblioteca de leitura do zip nao carregou (precisa de internet na primeira vez). Tenta de novo, ou descompacta o zip e sobe o diary.csv.', true);
+        return;
+      }
+      const zip = await JSZip.loadAsync(file);
+      // procura os csvs em qualquer pasta do zip (pode haver mais de uma pasta com o mesmo nome de arquivo)
+      const dCands = [], rCands = [], wCands = [], likeCands = [], likeFallbackCands = [], profCands = [];
+      zip.forEach((path, f) => {
+        if (f.dir) return;
+        if (/(^|\/)diary\.csv$/i.test(path)) dCands.push(f);
+        else if (/(^|\/)ratings\.csv$/i.test(path)) rCands.push(f);
+        else if (/(^|\/)watched\.csv$/i.test(path)) wCands.push(f);
+        else if (/(^|\/)likes\/films\.csv$/i.test(path)) likeCands.push(f);
+        else if (/(^|\/)films\.csv$/i.test(path)) likeFallbackCands.push(f);
+        else if (/(^|\/)profile\.csv$/i.test(path)) profCands.push(f);
+      });
+      if (!dCands.length){ setStatus('Nao achei o diary.csv dentro do zip. Confere se é o export certo do Letterboxd.', true); return; }
+      diaryText = await pickBestEntry(dCands);
+      ratingsText = await pickBestEntry(rCands);
+      watchedText = await pickBestEntry(wCands);
+      likesText = await pickBestEntry(likeCands.length ? likeCands : likeFallbackCands);
+      profileText = await pickBestEntry(profCands);
+    } else if (file.name.toLowerCase().endsWith('.csv')){
+      diaryText = stripBOM(await file.text());
+    } else {
+      setStatus('Formato nao reconhecido. Sobe o .zip do export ou o diary.csv.', true); return;
+    }
+    if (!diaryText || !diaryText.trim()){
+      setStatus('O diary.csv dentro do zip veio vazio. Confere se o export terminou de baixar direito.', true);
+      return;
+    }
+    const rows = parseCSV(diaryText);
+    if (!rows.length){
+      const preview = diaryText.slice(0, 60).replace(/\n/g, ' ⏎ ');
+      setStatus('Li ' + diaryText.length + ' caracteres do diary.csv mas não consegui separar em linhas. Início do arquivo: "' + preview + '". Me manda esse texto.', true);
+      return;
+    }
+    const ratingsRows = ratingsText ? parseCSV(ratingsText) : [];
+    const watchedRows = watchedText ? parseCSV(watchedText) : [];
+    const likesRows = likesText ? parseCSV(likesText) : [];
+    const profileRows = profileText ? parseCSV(profileText) : [];
+    S = computeStats(rows, ratingsRows, watchedRows, likesRows, profileRows);
+    setStatus(S.total + ' filmes lidos. Buscando dados na TMDB...');
+    try { await enrichWithTMDB(); } catch(e){ console.warn('TMDB falhou:', e); S.enriched = false; }
+    uploadProgress.style.display = 'none';
+    setStatus('Pronto! ' + S.total + ' filmes carregados.');
+    boot();
+  } catch (err){
+    console.error(err);
+    setStatus('Deu erro ao ler o arquivo: ' + err.message, true);
+  }
+}
+
+// ---- inicia o recap depois que S esta pronto ----
+function boot(){
+  hydrateStatic();
+  WRAPPED_SLIDES = buildWrappedSlides();
+  document.getElementById('uploadStage').style.display = 'none';
+  document.getElementById('wrappedStage').style.display = 'flex';
+  wIndex = 0;
+  buildWrappedProgress();
+  renderWrappedSlide();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// preenche os numeros estaticos (stub, listas amados/odiados) a partir de S
+function hydrateStatic(){
+  const fmt2 = n => (Math.round(n*100)/100).toFixed(2);
+  document.getElementById('statNum-total').textContent = S.total;
+  document.getElementById('statNum-avg').innerHTML = fmt2(S.avgRating) + ' <span class="star">★</span>';
+  document.getElementById('statNum-rewatch').textContent = S.rewatches;
+  document.getElementById('statNum-oldest').textContent = S.oldestYear || '--';
+
+  // amados / odiados com poster da TMDB (fallback pra placeholder)
+  function posterHtml(f){
+    if (f.tmdb && f.tmdb.poster){
+      return `<img src="${TMDB_IMG}${f.tmdb.poster}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\'pc-poster-ph\\'>🎬</div>'">`;
+    }
+    return '<div class="pc-poster-ph">🎬</div>';
+  }
+  const favSet = new Set(S.favoriteNames || []);
+  const lovedHead = document.getElementById('lovedHead');
+  if (lovedHead){
+    lovedHead.innerHTML = S.hasLikes
+      ? 'Amados · nota 5 <span class="star">★</span> e curtidos'
+      : 'Amados · nota 5 <span class="star">★</span>';
+  }
+  const lovedWrap = document.getElementById('lovedCards');
+  lovedWrap.innerHTML = S.loved.slice(0,6).map(f =>
+    `<div class="poster-card">${posterHtml(f)}<div class="pc-body"><span class="pc-name">${escapeHtml(f.name)}${favSet.has(f.name)?' <span class=\"fav-badge\" title=\"favorito do perfil\">♥</span>':''}</span><span class="pc-meta">${f.year||''}</span></div></div>`
+  ).join('') || '<p class="lead" style="margin:0;">Nenhum filme com nota 5 ainda.</p>';
+  const hatedWrap = document.getElementById('hatedCards');
+  hatedWrap.innerHTML = S.hated.slice(0,6).map(f =>
+    `<div class="poster-card hated">${posterHtml(f)}<div class="pc-body"><span class="pc-name">${escapeHtml(f.name)}</span><span class="pc-meta">${f.rating.toFixed(1)} ★</span></div></div>`
+  ).join('') || '<p class="lead" style="margin:0;">Nenhum filme com nota baixa. Que sorte!</p>';
+
+  hydrateCoreCallouts();
+}
+
+const MONTHS_LONG = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const WEEKDAYS_LONG = ['segunda','terça','quarta','quinta','sexta','sábado','domingo']; // ordem Seg..Dom (igual byWeekday)
+
+function setCallout(id, sentences){
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = sentences.map(s => `<span class="sentence">${s}</span>`).join('');
+}
+function fmtDateBR(iso){
+  if (!iso) return '';
+  const [y,m,d] = iso.split('-');
+  return `${Number(d)} de ${MONTHS_LONG[Number(m)-1]} de ${y}`;
+}
+
+function hydrateCoreCallouts(){
+  // Anos
+  const anos = [`${S.maxYear} é o seu ano recorde, com <strong>${S.byYear[S.maxYear]} filmes</strong> no diário.`];
+  if (S.years.length >= 2){
+    const sorted = [...S.years].sort((a,b) => S.byYear[b]-S.byYear[a]);
+    const top2 = sorted[0], top2b = sorted[1];
+    const share = Math.round((S.byYear[top2] + S.byYear[top2b]) / S.total * 100);
+    anos.push(`Só ${top2} e ${top2b} já concentram <strong>${share}%</strong> de tudo que você registrou.`);
+  }
+  setCallout('calloutAnos', anos);
+
+  // Meses
+  setCallout('calloutMeses', [
+    `${MONTHS_LONG[S.topMonth].replace(/^./, c=>c.toUpperCase())} é o seu mês mais cinéfilo, com <strong>${S.byMonth[S.topMonth]} filmes</strong> somados em todos os anos.`,
+    `${MONTHS_LONG[S.lowMonth].replace(/^./, c=>c.toUpperCase())} é o mais parado, com só <strong>${S.byMonth[S.lowMonth]}</strong>.`
+  ]);
+
+  // Notas
+  const fives = S.ratingHist[9];
+  const ratedTotal = S.ratingHist.reduce((a,b)=>a+b,0);
+  const pctFive = ratedTotal ? Math.round(fives/ratedTotal*100) : 0;
+  setCallout('calloutNotas', [
+    `<strong>${pctFive}%</strong> dos filmes que você avalia levam nota máxima, 5 estrelas <span class="star">★</span>.`,
+    `Você não é dos mais generosos, mas quando ama, ama de verdade.`
+  ]);
+
+  // Decadas
+  setCallout('calloutDecadas', [
+    `Os filmes dos <strong>anos ${S.topDecade}</strong> são os que mais aparecem no seu diário.`,
+    `É de lá que vem a maior parte das suas sessões.`
+  ]);
+
+  // Semana
+  const topDia = WEEKDAYS_LONG[S.topDowIdx], lowDia = WEEKDAYS_LONG[S.lowDowIdx];
+  const topDiaCap = topDia.replace(/^./,c=>c.toUpperCase());
+  const semTitle = document.getElementById('semanaTitle');
+  if (semTitle) semTitle.textContent = `${topDiaCap} é dia de cinema`;
+  setCallout('calloutSemana', [
+    `<strong>${topDiaCap}</strong> é disparado o seu dia de cinema, com <strong>${S.byWeekday[S.topDowIdx]} filmes</strong>.`,
+    `${lowDia.replace(/^./,c=>c.toUpperCase())} é o mais esquecido, com só ${S.byWeekday[S.lowDowIdx]}.`
+  ]);
+
+  // lead do genero (211 -> total real)
+  const gl = document.getElementById('genreLead');
+  if (gl) gl.textContent = `Classificamos os ${S.total} filmes do seu diário por gênero pra descobrir onde você realmente vive.`;
+}
+
+function escapeHtml(s){ return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ================= TMDB (Fase 2) ================= */
+const TMDB_KEY = "0ff14db82fc1efd9f65b422fa1572372";
+const TMDB_IMG = "https://image.tmdb.org/t/p/w342";
+
+function lsGet(k){ try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch(e){ return null; } }
+function lsSet(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+
+async function tmdbGet(url){
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('TMDB ' + r.status);
+  return r.json();
+}
+
+function setEnrichProgress(done, tot){
+  uploadProgress.style.display = 'block';
+  uploadProgressBar.style.width = (tot ? Math.round(done/tot*100) : 0) + '%';
+  setStatus('Buscando gênero, duração e pôsteres na TMDB... ' + done + '/' + tot);
+}
+
+// enriquece cada filme unico com dados da TMDB; preenche campos e agrega em S
+// escolhe o melhor resultado de busca: prioriza titulo identico e ano batendo exatamente,
+// com popularidade como desempate. Isso evita pegar um remake/filme homonimo errado
+// (o que corrompia genero/nota do filme certo e explicava numeros mudando entre uma
+// carregada e outra do mesmo zip).
+function pickBestMatch(results, wantName, wantYear){
+  if (!results.length) return null;
+  const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+  const wn = norm(wantName);
+  let best = null, bestScore = -Infinity;
+  for (const m of results){
+    let score = 0;
+    const titleMatch = norm(m.title) === wn || norm(m.original_title) === wn;
+    if (titleMatch) score += 100;
+    const y = (m.release_date || '').slice(0,4);
+    if (wantYear && y){
+      const diff = Math.abs(Number(y) - wantYear);
+      if (diff === 0) score += 50;
+      else if (diff === 1) score += 20; // datas de lancamento por regiao as vezes variam 1 ano
+      else score -= diff; // mais longe, mais penalizado
+    }
+    score += Math.min(m.popularity || 0, 50) / 10; // desempate leve por popularidade
+    if (score > bestScore){ bestScore = score; best = m; }
+  }
+  return best;
+}
+
+async function enrichWithTMDB(){
+  const cache = lsGet('tmdbCacheV2') || {};
+  // filmes unicos por nome+ano
+  const uniq = new Map();
+  S.films.forEach(f => { const k = f.name + '|' + (f.year||''); if (!uniq.has(k)) uniq.set(k, f); });
+  const items = [...uniq.entries()]; // [key, film]
+  const results = {};
+  let done = 0;
+
+  async function work(key, f){
+    if (cache[key] !== undefined){ results[key] = cache[key]; done++; setEnrichProgress(done, items.length); return; }
+    let out = null;
+    try {
+      const q = encodeURIComponent(f.name);
+      const search = await tmdbGet(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_KEY}&language=pt-BR&query=${q}`);
+      const hit = pickBestMatch(search.results || [], f.name, f.year);
+      if (hit){
+        // append_to_response=credits traz diretor e elenco na MESMA chamada, sem gastar outra requisicao
+        const det = await tmdbGet(`https://api.themoviedb.org/3/movie/${hit.id}?api_key=${TMDB_KEY}&language=pt-BR&append_to_response=credits`);
+        const crew = (det.credits && det.credits.crew) || [];
+        const cast = (det.credits && det.credits.cast) || [];
+        const director = crew.find(c => c.job === 'Director') || null;
+        const leadActor = cast[0] || null;
+        out = {
+          id: hit.id,
+          poster: det.poster_path || null,
+          genres: (det.genres || []).map(g => g.name),
+          runtime: det.runtime || null,
+          collection: det.belongs_to_collection ? { id: det.belongs_to_collection.id, name: det.belongs_to_collection.name, poster: det.belongs_to_collection.poster_path } : null,
+          overview: det.overview || '',
+          director: director ? { id: director.id, name: director.name, photo: director.profile_path || null } : null,
+          leadActor: leadActor ? { id: leadActor.id, name: leadActor.name, photo: leadActor.profile_path || null } : null
+        };
+      }
+    } catch(e){ out = null; }
+    results[key] = out;
+    cache[key] = out;
+    done++; setEnrichProgress(done, items.length);
+  }
+
+  // pool de concorrencia
+  const CONC = 8;
+  let idx = 0;
+  const keys = items.map(e => e[0]);
+  async function pool(){ while (idx < items.length){ const my = idx++; await work(items[my][0], items[my][1]); } }
+  await Promise.all(Array.from({length: CONC}, pool));
+  lsSet('tmdbCacheV2', cache);
+
+  // anexa aos filmes
+  S.films.forEach(f => { f.tmdb = results[f.name + '|' + (f.year||'')] || null; });
+  const enrichedCount = S.films.filter(f => f.tmdb).length;
+  S.enriched = enrichedCount > 0;
+  if (!S.enriched) return;
+
+  aggregateTMDB();
+}
+
+// mapa PT-BR de generos -> agrupa alguns pra ficar mais limpo
+function normalizeGenre(g){
+  const map = {
+    'Cinema TV':'Drama', 'História':'Drama', 'Guerra':'Drama',
+    'Mistério':'Suspense', 'Thriller':'Suspense',
+    'Ficção científica':'Ficção Científica', 'Ficção Científica':'Ficção Científica',
+    'Cinema tv':'Drama'
+  };
+  return map[g] || g;
+}
+
+// generos "fortes"/definidores primeiro, generos "leves" (que aparecem juntos com quase tudo) por ultimo.
+// evita que um filme como Parasita (Comedia + Drama + Suspense na TMDB) vire "Comedia" so por vir primeiro na lista deles.
+const GENRE_PRIORITY = ['Terror','Crime','Suspense','Drama','Ficção Científica','Faroeste','Guerra','Ação','Aventura','Fantasia','Romance','Animação','Música','Documentário','Família','Comédia'];
+
+function pickPrimaryGenre(rawGenres){
+  const normalized = [...new Set((rawGenres||[]).map(normalizeGenre))];
+  for (const p of GENRE_PRIORITY) { if (normalized.includes(p)) return p; }
+  return normalized[0];
+}
+
+function aggregateTMDB(){
+  // genero primario por filme = o mais "forte" entre os generos retornados (ver GENRE_PRIORITY)
+  const genreCount = {}, genreRatingSum = {}, genreRatingN = {};
+  S.films.forEach(f => {
+    if (!f.tmdb || !f.tmdb.genres || !f.tmdb.genres.length) return;
+    const g = pickPrimaryGenre(f.tmdb.genres);
+    f.primaryGenre = g;
+    genreCount[g] = (genreCount[g]||0) + 1;
+    if (f.rating != null){ genreRatingSum[g] = (genreRatingSum[g]||0) + f.rating; genreRatingN[g] = (genreRatingN[g]||0) + 1; }
+  });
+  const genres = Object.keys(genreCount).sort((a,b) => genreCount[b] - genreCount[a]);
+  S.genres = genres.map(g => ({
+    name: g, count: genreCount[g],
+    avg: genreRatingN[g] ? (genreRatingSum[g]/genreRatingN[g]) : null
+  }));
+
+  // duracao total e por ano
+  let totalMin = 0; const byYearMin = {};
+  S.films.forEach(f => {
+    const rt = (f.tmdb && f.tmdb.runtime) ? f.tmdb.runtime : 0;
+    totalMin += rt;
+    const y = f.date.getFullYear();
+    byYearMin[y] = (byYearMin[y]||0) + rt;
+  });
+  S.totalMin = totalMin;
+  S.byYearMin = byYearMin;
+
+  // colecoes/sagas
+  const colls = {};
+  S.films.forEach(f => {
+    if (!f.tmdb || !f.tmdb.collection) return;
+    const c = f.tmdb.collection;
+    if (!colls[c.id]) colls[c.id] = { id:c.id, name:c.name, poster:c.poster, seen:new Set() };
+    colls[c.id].seen.add(f.name);
+  });
+  S.collections = Object.values(colls).map(c => ({ id:c.id, name:c.name, poster:c.poster, seenCount:c.seen.size, films:[...c.seen] }))
+    .filter(c => c.seenCount >= 2)
+    .sort((a,b) => b.seenCount - a.seenCount);
+
+  // ids da TMDB de tudo que o usuario ja viu (pra nao sugerir repetido, independente do idioma do titulo)
+  S.seenTmdbIds = new Set();
+  S.films.forEach(f => { if (f.tmdb && f.tmdb.id) S.seenTmdbIds.add(f.tmdb.id); });
+
+  // diretor e ator mais vistos (contagem por pessoa, usando o id da TMDB pra nao duplicar por grafia)
+  function topPerson(getPerson){
+    const counts = {};
+    S.films.forEach(f => {
+      const p = f.tmdb && getPerson(f.tmdb);
+      if (!p) return;
+      if (!counts[p.id]) counts[p.id] = { id:p.id, name:p.name, photo:p.photo, count:0 };
+      counts[p.id].count++;
+    });
+    const list = Object.values(counts).sort((a,b) => b.count - a.count || a.name.localeCompare(b.name));
+    return list[0] || null;
+  }
+  S.topDirector = topPerson(t => t.director);
+  S.topActor = topPerson(t => t.leadActor);
+}
+
+/* ================= WRAPPED SLIDES ================= */
+let WRAPPED_SLIDES = [];
+
+function pl(n, sing, plur){ return n === 1 ? sing : (plur || sing + 's'); }
+
+function buildWrappedSlides(){
+  const topYear = S.maxYear;
+  const slides = [
+    {
+      eyebrow: "seu recap está pronto",
+      big: "SEU RECAP<br><em>ESTÁ PRONTO</em>",
+      sub: "Vamos ver o que o seu diário no Letterboxd diz sobre você."
+    },
+    {
+      eyebrow: "filmes no diário",
+      big: `<em>${S.total}</em> ${pl(S.total, 'FILME', 'FILMES')}`,
+      sub: "É muita pipoca. Bora ver como eles se distribuem."
+    },
+    ...(S.enriched && S.totalMin ? [{
+      eyebrow: "tempo total assistido",
+      big: `<em>${Math.round(S.totalMin/60)}</em> ${pl(Math.round(S.totalMin/60), 'HORA', 'HORAS')}`,
+      sub: `Isso são mais de ${(S.totalMin/60/24).toFixed(1)} dias inteiros, sem dormir, só de filme.`,
+      cls: "c-blue"
+    }] : []),
+    ...(S.enriched && S.genres && S.genres.length ? [{
+      eyebrow: "gênero favorito",
+      big: `É TUDO <em>${S.genres[0].name.toUpperCase()}</em>`,
+      sub: `${S.genres[0].count} ${pl(S.genres[0].count, 'filme', 'filmes')} desse gênero no seu diário. É onde você mais vive.`,
+      cls: "c-orange"
+    }] : []),
+    {
+      eyebrow: "seu ano mais cinéfilo",
+      big: `<em>${topYear}</em>`,
+      sub: `Foi em ${topYear} que você mais assistiu filme: ${S.byYear[topYear]} no total.`,
+      cls: "c-blue"
+    },
+    {
+      eyebrow: "dia da semana favorito",
+      big: `<em>${diaLongo(S.topDowIdx)}</em>`,
+      sub: `${S.byWeekday[S.topDowIdx]} ${pl(S.byWeekday[S.topDowIdx], 'filme assistido', 'filmes assistidos')} nesse dia, mais que em qualquer outro.`,
+      cls: "c-orange"
+    },
+    ...(S.streak.len >= 2 ? [{
+      eyebrow: "sua maior sequência",
+      big: `<em>${S.streak.len}</em> DIAS SEGUIDOS`,
+      sub: `Você passou ${S.streak.len} dias seguidos assistindo pelo menos um filme por dia.`,
+      cls: "c-blue"
+    }] : []),
+    {
+      eyebrow: "e tem muito mais",
+      big: "VAMOS AOS<br><em>DETALHES</em>",
+      sub: "Bora ver os números completos do seu diário.",
+      cta: true
+    }
+  ];
+  return slides;
+}
+function diaLongo(idx){
+  return ['SEGUNDA','TERÇA','QUARTA','QUINTA','SEXTA','SÁBADO','DOMINGO'][idx];
+}
+
+let wIndex = 0;
+let wTimer = null;
+const W_DURATION = 4500;
+
+function buildWrappedProgress(){
+  const wrap = document.getElementById('wrappedProgress');
+  wrap.innerHTML = '';
+  WRAPPED_SLIDES.forEach(() => {
+    const seg = document.createElement('div');
+    seg.className = 'seg';
+    seg.innerHTML = '<div class="fill"></div>';
+    wrap.appendChild(seg);
+  });
+}
+
+function renderWrappedSlide(){
+  const s = WRAPPED_SLIDES[wIndex];
+  const body = document.getElementById('wrappedSlideBody');
+  body.innerHTML = `
+    <div class="wrapped-eyebrow">${s.eyebrow}</div>
+    <h1 class="wrapped-big ${s.cls || ''}">${s.big}</h1>
+    <p class="wrapped-sub">${s.sub}</p>
+    ${s.cta ? '<button class="btn-gold" style="margin-top:28px;" id="btnWrappedCta">Ver estatísticas completas</button>' : ''}
+  `;
+  body.style.animation = 'none';
+  void body.offsetWidth;
+  body.style.animation = 'wrappedIn .5s ease';
+
+  const segs = document.querySelectorAll('#wrappedProgress .seg');
+  segs.forEach((seg, i) => {
+    seg.classList.remove('done');
+    const fill = seg.querySelector('.fill');
+    fill.style.transition = 'none';
+    fill.style.width = i < wIndex ? '100%' : '0%';
+  });
+
+  if (s.cta) {
+    document.getElementById('btnWrappedCta').addEventListener('click', finishWrapped);
+    clearInterval(wTimer);
+  } else {
+    startWrappedTimer();
+  }
+}
+
+function startWrappedTimer(){
+  clearInterval(wTimer);
+  const segs = document.querySelectorAll('#wrappedProgress .seg');
+  const fill = segs[wIndex].querySelector('.fill');
+  requestAnimationFrame(() => {
+    fill.style.transition = `width ${W_DURATION}ms linear`;
+    fill.style.width = '100%';
+  });
+  wTimer = setTimeout(nextWrappedSlide, W_DURATION);
+}
+
+function nextWrappedSlide(){
+  clearInterval(wTimer);
+  if (wIndex < WRAPPED_SLIDES.length - 1) {
+    wIndex++;
+    renderWrappedSlide();
+  } else {
+    finishWrapped();
+  }
+}
+
+function prevWrappedSlide(){
+  clearInterval(wTimer);
+  if (wIndex > 0) {
+    wIndex--;
+    renderWrappedSlide();
+  }
+}
+
+function finishWrapped(){
+  clearInterval(wTimer);
+  document.getElementById('wrappedStage').style.display = 'none';
+  showStats();
+}
+
+document.getElementById('wrappedSlideBody').addEventListener('click', (e) => {
+  if (e.target.id === 'btnWrappedCta') return;
+  const x = e.clientX;
+  const w = window.innerWidth;
+  if (x < w * 0.35) prevWrappedSlide();
+  else nextWrappedSlide();
+});
+document.getElementById('btnSkipWrapped').addEventListener('click', finishWrapped);
+
+let chartsRendered = false;
+function showStats(){
+  document.getElementById('statsStage').style.display = 'block';
+  window.scrollTo({top:0, behavior:'smooth'});
+  if (!chartsRendered){ renderCharts(); renderFactGrid(); renderShareCard(); renderTMDBSections(); chartsRendered = true; }
+}
+
+// Curiosidades (nao precisa de TMDB)
+function renderFactGrid(){
+  const grid = document.getElementById('factGrid');
+  if (!grid) return;
+  const facts = [];
+  // mais revisto
+  if (S.mostRewatched.length){
+    const top = S.mostRewatched[0];
+    const ties = S.mostRewatched.filter(x => x[1] === top[1]).map(x => x[0]);
+    facts.push({ num: top[1] + 'x', title: 'Filme mais revisto',
+      body: ties.length > 1 ? `${ties.slice(0,2).map(t=>`<strong>${escapeHtml(t)}</strong>`).join(' e ')} empatam como os mais revistos, ${top[1]} vezes cada.` : `<strong>${escapeHtml(top[0])}</strong> é o seu mais revisto, ${top[1]} vezes.` });
+  }
+  // maratonas
+  if (S.marathons.length){
+    const last = S.marathons[S.marathons.length-1];
+    facts.push({ num: S.marathons.length, title: 'Dias de maratona tripla',
+      body: `Você já teve ${S.marathons.length} dias diferentes com 3+ filmes no mesmo dia. O mais recente foi em ${fmtDateBR(last[0])}.` });
+  }
+  // salto no tempo
+  if (S.oldestYear){
+    const newest = Math.max(...S.films.filter(f=>f.year).map(f=>f.year));
+    const span = newest - S.oldestYear;
+    const oldFilm = S.films.filter(f=>f.year===S.oldestYear)[0];
+    facts.push({ num: span + ' anos', title: 'Salto no tempo',
+      body: `Entre o filme mais antigo do seu diário (<strong>${escapeHtml(oldFilm?oldFilm.name:'')}</strong>, de ${S.oldestYear}) e o mais recente, ${span} anos de diferença de estreia.` });
+  }
+  // recorde mensal
+  if (S.monthRecord){
+    const [ym, cnt] = S.monthRecord;
+    const [yy, mm] = ym.split('-');
+    facts.push({ num: cnt, title: 'Mês recorde',
+      body: `Seu teto mensal foi ${MONTHS_LONG[Number(mm)-1]} de ${yy}, com ${cnt} filmes num mês só.` });
+  }
+  // % >= 4
+  const ge4 = S.ratingHist[7] + S.ratingHist[8] + S.ratingHist[9];
+  const ratedTot = S.ratingHist.reduce((a,b)=>a+b,0);
+  if (ratedTot){
+    facts.push({ num: Math.round(ge4/ratedTot*100)+'%', title: 'Nota 4 ou mais',
+      body: `Boa parte das suas notas fica entre 4.0 <span class="star">★</span> e 5.0 <span class="star">★</span>. Você tende a escolher bem o que assiste.` });
+  }
+  // estreia
+  facts.push({ num: S.firstWatch.date.getFullYear(), title: 'Início do diário',
+    body: `Seu diário começa em ${fmtDateBR(isoLocal(S.firstWatch.date))}, com <em>${escapeHtml(S.firstWatch.name)}</em>.` });
+
+  const factColors = ['c-green','c-orange','c-blue'];
+  grid.innerHTML = facts.map((f,i) =>
+    `<div class="fact-card"><span class="fact-num ${factColors[i % factColors.length]}">${f.num}</span><span class="fact-title">${f.title}</span><p>${f.body}</p></div>`
+  ).join('');
+}
+
+/* ================= CARD EXPORTAVEL ================= */
+// so usa numeros/texto (nada de poster/foto da TMDB) pra nao correr risco de CORS travar a exportacao do PNG
+function renderShareCard(){
+  const heroNum = document.getElementById('shareHeroNum');
+  if (!heroNum) return;
+  heroNum.textContent = S.total;
+  document.getElementById('shareHeroLbl').textContent = pl(S.total, 'filme no diário', 'filmes no diário');
+
+  const fmt2 = n => (Math.round(n*100)/100).toFixed(2);
+  const stats = [];
+  stats.push({ n: fmt2(S.avgRating) + ' ★', l: 'nota média' });
+  stats.push({ n: `${S.maxYear} (${S.byYear[S.maxYear]})`, l: 'ano mais cinéfilo' });
+  if (S.enriched && S.genres && S.genres.length) stats.push({ n: S.genres[0].name, l: 'gênero favorito' });
+  if (S.enriched && S.totalMin) stats.push({ n: Math.round(S.totalMin/60) + 'h', l: 'horas assistidas' });
+  if (S.enriched && S.topDirector) stats.push({ n: S.topDirector.name, l: 'diretor mais visto' });
+  stats.push({ n: diaLongo(S.topDowIdx), l: 'dia de cinema favorito' });
+
+  document.getElementById('shareCardGrid').innerHTML = stats.map(s =>
+    `<div class="share-stat"><span class="share-num">${escapeHtml(String(s.n))}</span><span class="share-lbl">${s.l}</span></div>`
+  ).join('');
+}
+
+async function exportShareCard(){
+  const btn = document.getElementById('btnExportCard');
+  const statusEl = document.getElementById('exportStatus');
+  if (typeof html2canvas === 'undefined'){
+    statusEl.textContent = 'A biblioteca de exportação não carregou (precisa de internet). Tenta de novo, ou tira um print da tela.';
+    statusEl.classList.add('error');
+    return;
+  }
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Gerando...';
+  statusEl.textContent = '';
+  statusEl.classList.remove('error');
+  try {
+    const card = document.getElementById('shareCard');
+    const canvas = await html2canvas(card, { backgroundColor: '#221013', scale: 3 });
+    const link = document.createElement('a');
+    link.download = 'letterboxd-recap.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch (e){
+    console.error(e);
+    statusEl.textContent = 'Não consegui gerar a imagem. Tenta de novo, ou tira um print da tela mesmo.';
+    statusEl.classList.add('error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+document.getElementById('btnExportCard').addEventListener('click', exportShareCard);
+
+// Secoes que dependem da TMDB. Se nao enriqueceu, esconde.
+async function renderTMDBSections(){
+  if (!S.enriched){
+    ['generos','duracao','sagas','pessoas'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+    return;
+  }
+  try { renderPeopleSection(); } catch(e){ console.warn(e); document.getElementById('pessoas').style.display='none'; }
+  try { renderGenreSection(); } catch(e){ console.warn(e); }
+  try { renderDurationSection(); } catch(e){ console.warn(e); }
+  try { await renderSagasSection(); } catch(e){ console.warn(e); document.getElementById('sagas').style.display='none'; }
+  try { await renderSuggestions(); } catch(e){ console.warn(e); }
+}
+
+const TMDB_PROFILE_IMG = "https://image.tmdb.org/t/p/w185";
+
+function renderPeopleSection(){
+  const grid = document.getElementById('peopleGrid');
+  const sec = document.getElementById('pessoas');
+  if (!grid) return;
+  if (!S.topDirector && !S.topActor){ sec.style.display = 'none'; return; }
+
+  function personCard(p, role){
+    if (!p) return '';
+    const photo = p.photo
+      ? `<img class="person-photo" src="${TMDB_PROFILE_IMG}${p.photo}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\'person-photo-ph\\'>🎬</div>'">`
+      : '<div class="person-photo-ph">🎬</div>';
+    return `<div class="person-card">${photo}<div><span class="person-role">${role}</span><span class="person-name">${escapeHtml(p.name)}</span><span class="person-count">${p.count} filme${p.count>1?'s':''} no seu diário</span></div></div>`;
+  }
+
+  grid.innerHTML = personCard(S.topDirector, 'Diretor mais visto') + personCard(S.topActor, 'Ator mais visto');
+}
+
+const CHART_COLORS = { TEAL:'#5c8374', GREEN:'#00e054', ORANGE:'#ff8000', BLUE:'#40bcf4' };
+
+function renderGenreSection(){
+  const fmt = n => (Math.round(n*100)/100).toFixed(2);
+  const top = S.genres.slice(0, 12);
+  const g1 = S.genres[0];
+
+  // calcula "menos amado entre os mais vistos" e "mais bem avaliado" ANTES do grafico, pra colorir as barras
+  // exige uma amostra minima (>=5 filmes, ou 3% do total classificado) pra nao deixar um genero raro
+  // (tipo Musica ou Documentario com so 3 filmes) ganhar o titulo so por sorte de amostra pequena.
+  const genreTotal = S.genres.reduce((s,g)=>s+g.count, 0);
+  const minSample = Math.max(5, Math.round(genreTotal * 0.03));
+  const tieBreak = (a,b) => a.name.localeCompare(b.name); // desempate estavel, sempre o mesmo resultado
+  const cand = S.genres.filter(g => g.avg != null && g.count >= minSample);
+  let leastLiked = null, bestLiked = null;
+  if (cand.length){
+    leastLiked = [...S.genres.slice(0,6)].filter(g=>g.avg!=null && g.count>=minSample).sort((a,b)=> (a.avg-b.avg) || tieBreak(a,b))[0] || null;
+    bestLiked = [...cand].sort((a,b)=> (b.avg-a.avg) || tieBreak(a,b))[0] || null;
+  }
+  if (leastLiked && leastLiked.name === g1.name) leastLiked = null;
+  if (bestLiked && (bestLiked.name === g1.name || (leastLiked && bestLiked.name === leastLiked.name))) bestLiked = null;
+
+  const colors = top.map(g => {
+    if (g.name === g1.name) return CHART_COLORS.GREEN;
+    if (leastLiked && g.name === leastLiked.name) return CHART_COLORS.ORANGE;
+    if (bestLiked && g.name === bestLiked.name) return CHART_COLORS.BLUE;
+    return CHART_COLORS.TEAL;
+  });
+  new Chart(document.getElementById('chartGenre'), {
+    type:'bar',
+    data:{ labels: top.map(g=>g.name), datasets:[{ data: top.map(g=>g.count), backgroundColor:colors, borderRadius:4 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c => c.raw + ' filmes' } } },
+      scales:{ x:{ grid:{ color:'rgba(239,228,207,0.08)', drawBorder:false }, ticks:{ color:'#a8c2b6' }, beginAtZero:true }, y:{ grid:{ display:false }, ticks:{ color:'#cfae76' } } } }
+  });
+
+  setCallout('calloutGenero1', [`<strong>${g1.name}</strong> é o seu gênero número um, com <strong>${g1.count} filmes</strong>${g1.avg!=null?`, nota média ${fmt(g1.avg)} <span class="star">★</span>`:''}.`]);
+  if (leastLiked){
+    setCallout('calloutGenero2', [`Você assiste bastante <strong>${leastLiked.name}</strong> (${leastLiked.count} filmes), mas é o que menos te agrada entre os mais vistos: média ${fmt(leastLiked.avg)} <span class="star">★</span>.`]);
+  } else { document.getElementById('calloutGenero2').style.display = 'none'; }
+  if (bestLiked){
+    setCallout('calloutGenero3', [`Já <strong>${bestLiked.name}</strong> é onde você mais dá nota alta: média ${fmt(bestLiked.avg)} <span class="star">★</span>, a melhor entre os gêneros com peso.`]);
+  } else { document.getElementById('calloutGenero3').style.display = 'none'; }
+}
+
+function renderDurationSection(){
+  const hrs = Math.round(S.totalMin/60);
+  const days = (S.totalMin/60/24);
+  document.getElementById('durHours').textContent = hrs + 'h';
+  document.getElementById('durDays').textContent = days.toFixed(1) + ' dias';
+  // chart por ano (horas) - linha, pra passar a ideia de progressao ao longo do tempo
+  const yLabels = S.years.map(String);
+  const yData = S.years.map(y => Math.round((S.byYearMin[y]||0)/60));
+  new Chart(document.getElementById('chartHours'), {
+    type:'line',
+    data:{ labels:yLabels, datasets:[{
+      data:yData,
+      borderColor:CHART_COLORS.ORANGE,
+      backgroundColor:'rgba(255,128,0,0.18)',
+      fill:true,
+      tension:0.35,
+      pointBackgroundColor:CHART_COLORS.ORANGE,
+      pointBorderColor:CHART_COLORS.ORANGE,
+      pointRadius:4,
+      pointHoverRadius:6,
+      borderWidth:2.5
+    }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c => c.raw + ' horas' } } },
+      scales:{ x:{ grid:{ color:'rgba(239,228,207,0.08)', drawBorder:false }, ticks:{ color:'#cfae76' } }, y:{ grid:{ color:'rgba(239,228,207,0.08)', drawBorder:false }, ticks:{ color:'#a8c2b6' }, beginAtZero:true } } }
+  });
+  const weeksWork = Math.round(hrs/40);
+  const topYearHrs = Math.round((S.byYearMin[S.maxYear]||0)/60);
+  const ratedSessions = S.total;
+  const avgSession = ratedSessions ? Math.round(S.totalMin/ratedSessions) : 0;
+  const equivs = [
+    `Isso são <strong>${days.toFixed(1)} dias corridos</strong>, sem parar pra dormir nem nada.`,
+    `Equivale a mais de <strong>${weeksWork} semanas de expediente</strong> (40h cada), se fosse trabalho em vez de filme.`,
+    `${S.maxYear} foi o ano que mais tomou seu tempo: cerca de <strong>${topYearHrs} horas</strong>, uma média de <strong>${Math.floor(avgSession/60)}h${String(avgSession%60).padStart(2,'0')}</strong> por sessão.`
+  ];
+  document.getElementById('durEquiv').innerHTML = equivs.map(e => `<li>${e}</li>`).join('');
+}
+
+async function renderSagasSection(){
+  const sec = document.getElementById('sagas');
+  if (!S.collections || !S.collections.length){ sec.style.display = 'none'; return; }
+  // busca total de filmes de cada colecao pra saber completude
+  const cache = lsGet('tmdbCollCache') || {};
+  for (const c of S.collections){
+    if (cache[c.id] === undefined){
+      try {
+        const d = await tmdbGet(`https://api.themoviedb.org/3/collection/${c.id}?api_key=${TMDB_KEY}&language=pt-BR`);
+        cache[c.id] = { total: (d.parts||[]).length, poster: d.poster_path };
+      } catch(e){ cache[c.id] = { total: c.seenCount, poster: c.poster }; }
+    }
+    c.total = cache[c.id].total || c.seenCount;
+    c.poster = c.poster || cache[c.id].poster;
+  }
+  lsSet('tmdbCollCache', cache);
+
+  const grid = document.getElementById('sagaGrid');
+  grid.innerHTML = S.collections.slice(0, 6).map(c => {
+    const complete = c.seenCount >= c.total;
+    const badge = complete ? `<span class="saga-badge complete">${c.seenCount}/${c.total} completa</span>` : `<span class="saga-badge partial">${c.seenCount}/${c.total} vistos</span>`;
+    const img = c.poster ? `<img class="saga-poster" src="${TMDB_IMG}${c.poster}" alt="" loading="lazy" onerror="this.style.display='none'">` : '';
+    return `<div class="saga-card">${img}<div class="saga-body"><div class="saga-title">${escapeHtml(cleanCollName(c.name))} ${badge}</div><div class="saga-films">${c.films.slice(0,6).map(escapeHtml).join(' · ')}</div></div></div>`;
+  }).join('');
+}
+function cleanCollName(n){ return (n||'').replace(/:?\s*(Cole[cç][aã]o|Collection)\s*$/i, '').trim(); }
+
+// ids de genero da TMDB sao fixos e independem de idioma (mais confiavel que casar pelo nome em pt-BR).
+// "Suspense" e "Drama" juntam mais de um id porque normalizeGenre() tambem funde Thriller+Misterio e Guerra+Historia.
+const GENRE_ID_MAP = {
+  'Ação':'28', 'Aventura':'12', 'Animação':'16', 'Comédia':'35', 'Crime':'80',
+  'Documentário':'99', 'Drama':'18,10752,36', 'Família':'10751', 'Fantasia':'14',
+  'Terror':'27', 'Música':'10402', 'Suspense':'53,9648',
+  'Romance':'10749', 'Ficção Científica':'878', 'Faroeste':'37'
+};
+
+async function renderSuggestions(){
+  const pillsWrap = document.getElementById('genrePills');
+  const grid = document.getElementById('suggestionGrid');
+  if (!pillsWrap || !grid) return;
+  const seenIds = new Set(S.seenTmdbIds || []);
+  const seenNames = new Set(S.seenNames || []);
+  S.films.forEach(f => seenNames.add(f.name.toLowerCase()));
+
+  // top generos do usuario (ja calculados com o genero "forte" de cada filme) que a gente sabe buscar na TMDB
+  const topGenres = S.genres.map(g => g.name).filter(n => GENRE_ID_MAP[n]).slice(0, 6);
+  if (!topGenres.length){ pillsWrap.style.display = 'none'; grid.style.display = 'none'; return; }
+
+  // filmes do PROPRIO usuario nesse genero, do que ele mais gostou pro que menos gostou
+  // (isso ancora a sugestao no gosto de cada um, em vez de mandar sempre o "top da TMDB" igual pra todo mundo)
+  function seedFilmsForGenre(name){
+    return S.films
+      .filter(f => f.primaryGenre === name && f.tmdb && f.tmdb.id && f.rating != null && f.rating >= 3.5)
+      .sort((a,b) => (b.rating - a.rating) || (b.date - a.date))
+      .filter((f, i, arr) => arr.findIndex(x => x.tmdb.id === f.tmdb.id) === i) // um por filme (rewatch nao duplica seed)
+      .slice(0, 4);
+  }
+
+  const cacheSug = {};
+  async function loadGenre(name){
+    if (cacheSug[name]) return cacheSug[name];
+    const seeds = seedFilmsForGenre(name);
+    const scored = new Map(); // id -> {movie, score}
+    for (const seed of seeds){
+      for (const kind of ['recommendations','similar']){
+        try {
+          const d = await tmdbGet(`https://api.themoviedb.org/3/movie/${seed.tmdb.id}/${kind}?api_key=${TMDB_KEY}&language=pt-BR&page=1`);
+          (d.results || []).forEach(m => {
+            const prev = scored.get(m.id);
+            // soma pontos toda vez que o filme aparece recomendado a partir de um filme diferente que o usuario amou:
+            // assim quem foi indicado por mais de um dos seus favoritos sobe no ranking (mais "consenso" com o seu gosto)
+            scored.set(m.id, { movie: m, score: (prev ? prev.score : 0) + 1 });
+          });
+        } catch(e){}
+      }
+    }
+    // se tem poucos filmes nota alta nesse genero (poucos seeds), completa com o top avaliado do genero na TMDB
+    if (seeds.length < 2){
+      const ids = GENRE_ID_MAP[name];
+      try {
+        const d = await tmdbGet(`https://api.themoviedb.org/3/discover/movie?api_key=${TMDB_KEY}&language=pt-BR&with_genres=${encodeURIComponent(ids)}&sort_by=vote_average.desc&vote_count.gte=1500&page=1`);
+        (d.results || []).forEach(m => { if (!scored.has(m.id)) scored.set(m.id, { movie: m, score: 0 }); });
+      } catch(e){}
+    }
+    const ranked = [...scored.values()].sort((a,b) => b.score - a.score || (b.movie.vote_average - a.movie.vote_average));
+    const list = [];
+    const usedIds = new Set();
+    for (const { movie: m } of ranked){
+      if (list.length >= 5) break;
+      if (usedIds.has(m.id) || seenIds.has(m.id)) continue;
+      if (seenNames.has((m.title||'').toLowerCase()) || seenNames.has((m.original_title||'').toLowerCase())) continue;
+      if (!m.poster_path) continue;
+      usedIds.add(m.id);
+      list.push(m);
+    }
+    cacheSug[name] = list;
+    return list;
+  }
+
+  pillsWrap.innerHTML = '';
+  topGenres.forEach((g,i) => {
+    const pill = document.createElement('button');
+    pill.className = 'genre-pill' + (i===0?' active':'');
+    pill.textContent = g;
+    pill.onclick = async () => {
+      document.querySelectorAll('.genre-pill').forEach(p=>p.classList.remove('active'));
+      pill.classList.add('active');
+      await showSuggestionsFor(g, loadGenre);
+    };
+    pillsWrap.appendChild(pill);
+  });
+  await showSuggestionsFor(topGenres[0], loadGenre);
+}
+
+async function showSuggestionsFor(genre, loader){
+  const grid = document.getElementById('suggestionGrid');
+  grid.innerHTML = '<p class="lead" style="grid-column:1/-1;margin:0;">Buscando...</p>';
+  let list = [];
+  try { list = await loader(genre); } catch(e){ grid.innerHTML = '<p class="lead" style="margin:0;">Não deu pra buscar sugestões agora.</p>'; return; }
+  if (!list.length){ grid.innerHTML = '<p class="lead" style="margin:0;">Você já viu quase tudo de bom desse gênero!</p>'; return; }
+  grid.innerHTML = list.map(m => {
+    const poster = m.poster_path ? `<div class="sc-poster"><img src="${TMDB_IMG}${m.poster_path}" alt="" loading="lazy" onerror="this.parentNode.classList.add('sc-poster-fail')"></div>` : '<div class="sc-poster sc-poster-fail"></div>';
+    const yr = (m.release_date||'').slice(0,4);
+    const overview = escapeHtml(m.overview || 'Sem sinopse disponível.');
+    return `<div class="suggestion-card">${poster}<div class="sc-body"><div><span class="sc-title">${escapeHtml(m.title||'')}</span><span class="sc-year">${yr}</span></div><div class="sc-hook clamped">${overview}</div><button class="sc-toggle" onclick="toggleHook(this)" style="display:none;">ver mais</button></div></div>`;
+  }).join('');
+  // mostra o "ver mais" so onde o texto realmente estoura as 4 linhas
+  requestAnimationFrame(() => {
+    grid.querySelectorAll('.suggestion-card').forEach(card => {
+      const hook = card.querySelector('.sc-hook');
+      const btn = card.querySelector('.sc-toggle');
+      if (hook.scrollHeight - hook.clientHeight > 2) btn.style.display = 'inline-block';
+      else hook.classList.remove('clamped');
+    });
+  });
+}
+
+function toggleHook(btn){
+  const hook = btn.parentNode.querySelector('.sc-hook');
+  const stillClamped = hook.classList.toggle('clamped');
+  btn.textContent = stillClamped ? 'ver mais' : 'ver menos';
+}
+
+function restartWrapped(){
+  document.getElementById('statsStage').style.display = 'none';
+  document.getElementById('wrappedStage').style.display = 'flex';
+  wIndex = 0;
+  buildWrappedProgress();
+  renderWrappedSlide();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+document.getElementById('btnRestart').addEventListener('click', restartWrapped);
+
+/* ================= CHARTS (dinamicos a partir de S) ================= */
+function renderCharts(){
+  Chart.defaults.color = '#a8c2b6';
+  Chart.defaults.font.family = "'Space Mono', monospace";
+  Chart.defaults.font.size = 11;
+
+  const gridColor = 'rgba(239,228,207,0.08)';
+  const TEAL = '#5c8374', GREEN = '#00e054', ORANGE = '#ff8000', BLUE = '#40bcf4';
+
+  function baseScales(){
+    return {
+      x:{ grid:{ color:gridColor, drawBorder:false }, ticks:{ color:'#cfae76' } },
+      y:{ grid:{ color:gridColor, drawBorder:false }, ticks:{ color:'#a8c2b6' }, beginAtZero:true }
+    };
+  }
+
+  // ---- Ano a ano ----
+  const yearLabels = S.years.map(String);
+  const yearData = S.years.map(y => S.byYear[y]);
+  const yearColors = S.years.map(y => y === S.maxYear ? GREEN : TEAL);
+  new Chart(document.getElementById('chartYear'), {
+    type:'bar',
+    data:{ labels:yearLabels, datasets:[{ data:yearData, backgroundColor:yearColors, borderRadius:4, barThickness: S.years.length > 8 ? undefined : 46 }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c => c.raw + ' filmes' } } }, scales: baseScales() }
+  });
+
+  // ---- Mes (voltou pra barra: radar ficava torto quando um mes destoa muito dos outros, tipo julho) ----
+  const monthColors = S.byMonth.map((_,i) => i === S.topMonth ? ORANGE : TEAL);
+  new Chart(document.getElementById('chartMonth'), {
+    type:'bar',
+    data:{ labels:MONTHS_PT, datasets:[{ data:S.byMonth, backgroundColor:monthColors, borderRadius:4 }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c => c.raw + ' filmes (total histórico)' } } },
+      scales: baseScales()
+    }
+  });
+
+  // ---- Notas (linha com area: destaca a curva da distribuicao) ----
+  const ratingLabels = S.ratingSteps.map(s => s.toFixed(1));
+  const ratingPointColors = S.ratingSteps.map(s => s === 5 ? GREEN : '#a8c2b6');
+  new Chart(document.getElementById('chartRating'), {
+    type:'line',
+    data:{ labels:ratingLabels, datasets:[{
+      data:S.ratingHist,
+      borderColor:GREEN,
+      backgroundColor:'rgba(0,224,84,0.15)',
+      fill:true,
+      tension:0.3,
+      pointBackgroundColor:ratingPointColors,
+      pointBorderColor:ratingPointColors,
+      pointRadius:4,
+      pointHoverRadius:6,
+      borderWidth:2.5
+    }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c => c.raw + ' filmes' } } }, scales: baseScales() }
+  });
+
+  // ---- Decada (voltou pra barra horizontal: tem ordem cronologica natural, rosca nao representava isso bem) ----
+  const decLabels = S.decades.map(d => d + 's');
+  const decData = S.decades.map(d => S.decadeMap[d]);
+  const decColors = S.decades.map(d => d === S.topDecade ? ORANGE : TEAL);
+  new Chart(document.getElementById('chartDecade'), {
+    type:'bar',
+    data:{ labels:decLabels, datasets:[{ data:decData, backgroundColor:decColors, borderRadius:4 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c => c.raw + ' filmes' } } },
+      scales:{ x:{ grid:{ color:gridColor, drawBorder:false }, ticks:{ color:'#a8c2b6' }, beginAtZero:true }, y:{ grid:{ display:false }, ticks:{ color:'#cfae76' } } } }
+  });
+
+  // ---- Dia da semana ----
+  const dowColors = S.byWeekday.map((_,i) => i === S.topDowIdx ? BLUE : TEAL);
+  new Chart(document.getElementById('chartDow'), {
+    type:'bar',
+    data:{ labels:WEEKDAYS_PT, datasets:[{ data:S.byWeekday, backgroundColor:dowColors, borderRadius:4 }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c => c.raw + ' filmes' } } }, scales: baseScales() }
+  });
+}
+
+</script>
+
+</body>
+</html>
